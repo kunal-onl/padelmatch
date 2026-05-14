@@ -1,0 +1,283 @@
+{
+  "theme": "light",
+  "archetype": "Sport Brutalism (Custom Hybrid)",
+  "brand_name": "Padel Match",
+  "design_system_rules": {
+    "border_radius": "0px everywhere (strictly enforced).",
+    "borders": "2px solid #111118 (ink) on all cards, buttons, navigation, and inputs.",
+    "shadows": "Flat, layered cards. No soft drop shadows. Use hard flat translation shadows if depth is needed, or just rely on the 2px solid borders.",
+    "layout": {
+      "mobile_first": true,
+      "primary_breakpoint": "390px",
+      "max_width": "480px centered in viewport on larger screens.",
+      "touch_target_min": "48px",
+      "card_padding": "14px",
+      "section_gap": "20px",
+      "bottom_nav": "Fixed at bottom, 5 tabs, ink background, lime icon for active, 25% opacity white for inactive. Center tab (+) is raised with lime background for 'Create Game'."
+    },
+    "data_testid_rule": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case."
+  },
+  "colors": {
+    "cream": "#F5F2E8",
+    "ink": "#111118",
+    "lime": "#C9E52F",
+    "coral": "#FF4136",
+    "blue": "#1A56FF",
+    "ink2": "#3A3A4A",
+    "grey": "#888888",
+    "border": "#DDDAD0",
+    "white": "#FFFFFF",
+    "win": "#1A6B3A",
+    "loss": "#B52A1C"
+  },
+  "typography": {
+    "fonts_required": ["Unbounded", "DM Mono", "DM Sans"],
+    "usage": {
+      "rating_numbers": {
+        "family": "Unbounded",
+        "weight": "900",
+        "size": "72px or larger",
+        "notes": "The single most important visual element. Must be dominant."
+      },
+      "ranks": {
+        "family": "Unbounded",
+        "weight": "900"
+      },
+      "headings_and_ctas": {
+        "family": "Unbounded",
+        "weight": "700",
+        "transform": "uppercase",
+        "letter_spacing": "-0.03em",
+        "notes": "Used for card titles, player names, CTA labels."
+      },
+      "secondary_headings": {
+        "family": "Unbounded",
+        "weight": "400"
+      },
+      "scores_and_stats": {
+        "family": "DM Mono",
+        "notes": "Used for match scores (e.g., 6-2 4-6), stat numbers, timestamps."
+      },
+      "micro_labels": {
+        "family": "DM Mono",
+        "size": "9px",
+        "transform": "uppercase",
+        "letter_spacing": "0.2em",
+        "notes": "Rating labels, small UI hints."
+      },
+      "body": {
+        "family": "DM Sans",
+        "notes": "Body copy, descriptions, notifications."
+      }
+    }
+  },
+  "component_patterns": {
+    "rating_badge": {
+      "description": "Large Unbounded 900 lime number on ink background (or ink on cream). Accompanied by a 4px lime bottom bar.",
+      "sizes": "44px to 72px depending on context."
+    },
+    "card_header_band": {
+      "description": "Every card has a colored header band (8px high strip or full label row) before content.",
+      "semantics": {
+        "blue": "Profile",
+        "coral": "Games",
+        "ink": "Leaderboard",
+        "lime": "Active/Match"
+      }
+    },
+    "cta_button": {
+      "description": "Split design. Main lime button (Unbounded 900 uppercase) + coral arrow tab on right. Separated by a 2px ink border."
+    },
+    "stat_chip": {
+      "description": "4 chips per row. Backgrounds can be white, lime, coral, or blue. Separated by 2px ink borders.",
+      "value_typography": "Unbounded 900",
+      "label_typography": "DM Sans uppercase 9px"
+    },
+    "pill_selector": {
+      "inactive": "cream background + 2px ink border",
+      "active": "lime background + 2px ink border"
+    },
+    "leaderboard_row": {
+      "layout": "Flex row. Rank on left, Name middle, Rating right, Trend arrow extreme right.",
+      "rank_styling": "DM Mono, 42px width, right ink border.",
+      "name_styling": "Unbounded 700, flex-grow.",
+      "rating_styling": "Unbounded 900, lime color.",
+      "own_row_styling": "Coral background + white text."
+    },
+    "match_score_display": {
+      "typography": "DM Mono 26px.",
+      "layout": "Side-by-side team panels.",
+      "winner_styling": "Lime-tinted #EDFAD0 background."
+    }
+  },
+  "motion_and_interactions": {
+    "card_entrance": "Fade-up 0.2s staggered 50ms.",
+    "rating_reveal": "Animated count-up over 0.8s ease-out.",
+    "rank_changes": "0.3s transition."
+  },
+  "screens": [
+    {
+      "name": "Onboarding Step 1 - Identity",
+      "background": "ink",
+      "description": "Introductory screen. Dark mode feel with ink background. High contrast white and lime text. Name and basic identity inputs.",
+      "elements": ["Text Inputs with 2px lime borders on focus", "Bottom split CTA"]
+    },
+    {
+      "name": "Onboarding Step 2 - Experience",
+      "background": "cream",
+      "description": "4 distinct question cards capturing the user's padel history.",
+      "elements": ["Layered flat cards", "Pill selectors for choices"]
+    },
+    {
+      "name": "Onboarding Step 3 - Preferences",
+      "background": "cream",
+      "description": "Venues grid, Availability days, Frequency stepper.",
+      "elements": ["Venue grid (real images with ink borders)", "Availability pill selectors", "DM Mono steppers"]
+    },
+    {
+      "name": "Onboarding Step 4 - Connections",
+      "background": "cream",
+      "description": "Player search and selection with tap states.",
+      "elements": ["Search input", "Player list with '+' buttons (lime active states)"]
+    },
+    {
+      "name": "Onboarding Step 5 - Shot Comfort",
+      "background": "cream",
+      "description": "Detailed evaluation of 36 shots across 5 categories.",
+      "elements": ["5 horizontal tabs", "Grid of 36 shots", "Video placeholders (ink borders, grey fill)"]
+    },
+    {
+      "name": "Rating Reveal",
+      "background": "ink",
+      "description": "Dramatic full-screen reveal of the initial assigned rating.",
+      "elements": ["Massive 72px+ Unbounded 900 number counting up", "Lime accents"]
+    },
+    {
+      "name": "Home/Dashboard",
+      "background": "cream",
+      "description": "Main hub.",
+      "elements": [
+        "Rating badge (top left)",
+        "Rank",
+        "Stats strip (Stat Chips)",
+        "Strong matches section",
+        "Players available this week",
+        "Recent results list"
+      ]
+    },
+    {
+      "name": "Games Feed",
+      "background": "cream",
+      "description": "List of available and upcoming games.",
+      "elements": [
+        "Filters (Today/This Week/All, Venue/Skill/Spots)",
+        "Game cards with coral header bands and 2px ink borders"
+      ]
+    },
+    {
+      "name": "Game Detail",
+      "background": "cream",
+      "description": "Deep dive into a specific game.",
+      "elements": [
+        "Coral venue header",
+        "2x2 player grid with 2px ink borders",
+        "Join button (Split CTA)",
+        "Hudle deep link"
+      ]
+    },
+    {
+      "name": "Create Game",
+      "background": "cream",
+      "description": "3-step flow: Where, When, Preview & Share.",
+      "elements": [
+        "Raised lime center tab trigger",
+        "Step indicators",
+        "WhatsApp share CTA"
+      ]
+    },
+    {
+      "name": "Own Profile",
+      "background": "cream",
+      "description": "The user's personal page.",
+      "elements": [
+        "Blue header band/hero",
+        "72px+ rating block",
+        "Sparkline for trend",
+        "Radar chart for shot comfort",
+        "Match history feed"
+      ]
+    },
+    {
+      "name": "Other Player Profile",
+      "background": "cream",
+      "description": "Viewing another community member.",
+      "elements": [
+        "Blue header band",
+        "Relationship banner (e.g., 'Played 3 times')",
+        "Stats comparison"
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "background": "cream",
+      "description": "Community ranking.",
+      "elements": [
+        "Top-3 podium",
+        "Ranked list using Leaderboard Row component",
+        "Unranked section at the bottom"
+      ]
+    },
+    {
+      "name": "Score Entry",
+      "background": "cream",
+      "description": "Input match results.",
+      "elements": [
+        "Two-team panels (side-by-side)",
+        "DM Mono 26px score inputs",
+        "Winner panel gets lime-tinted #EDFAD0 bg post-entry"
+      ]
+    },
+    {
+      "name": "Notifications",
+      "background": "cream",
+      "description": "Activity feed.",
+      "elements": [
+        "List of alerts with DM Sans body",
+        "DM Mono timestamps"
+      ]
+    }
+  ],
+  "image_urls": {
+    "venues_and_courts": {
+      "description": "Padel courts in North Goa (e.g., Round Two Vagator, Sunday Club Siolim). Used in Preferences and Game Feed.",
+      "urls": [
+        "https://images.unsplash.com/photo-1646649853703-7645147474ba?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxwYWRlbCUyMGNvdXJ0fGVufDB8fHx8MTc3ODc2Nzg4MHww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1658723826297-fe4d1b1e6600?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwyfHxwYWRlbCUyMGNvdXJ0fGVufDB8fHx8MTc3ODc2Nzg4MHww&ixlib=rb-4.1.0&q=85"
+      ]
+    },
+    "players_action": {
+      "description": "Players in action, handshake moments. Used for avatars, connections, profile headers.",
+      "urls": [
+        "https://images.unsplash.com/photo-1646649852033-7e0f3d679f8b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwxfHxwYWRlbCUyMHBsYXllcnN8ZW58MHx8fHwxNzc4NzY3ODgwfDA&ixlib=rb-4.1.0&q=85",
+        "https://images.pexels.com/photos/35248404/pexels-photo-35248404.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      ]
+    },
+    "goa_vibe": {
+      "description": "North Goa coastal vibe, sunset, palms. Used for onboarding backgrounds or empty states.",
+      "urls": [
+        "https://images.unsplash.com/photo-1685271552630-9bc169185566?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwyfHxnb2ElMjBiZWFjaCUyMHN1bnNldHxlbnwwfHx8fDE3Nzg3Njc4ODB8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.pexels.com/photos/8037061/pexels-photo-8037061.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      ]
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly apply 0px border radius everywhere. No rounded corners.",
+    "Use exact hex codes provided. Do not deviate or use default Tailwind shades like gray-200.",
+    "Borders must be 2px solid #111118 (ink).",
+    "Font weights are highly specific: Unbounded 900 for numbers/ratings, 700 for headers/CTA. DM Mono for scores/stats.",
+    "Maintain a mobile-first maximum width of 480px, centered horizontally.",
+    "Build the application using pure React and standard HTML elements tailored with Tailwind, heavily enforcing the brutalist constraints.",
+    "Implement the 5-tab bottom navigation strictly with center tab raised lime.",
+    "All interactive elements must include `data-testid` in kebab-case."
+  ]
+}

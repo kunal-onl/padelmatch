@@ -113,7 +113,7 @@ export default function GameDetail() {
 
         <View style={{ marginTop: 18 }}>
           {isIn ? (
-            <SplitCTA testID="leave-game" label="YOU'RE IN ✓ TAP TO LEAVE" onPress={onLeave} filledColor={C.ink} arrowIcon="close" />
+            <SplitCTA testID="leave-game" label="YOU'RE IN  ·  TAP TO LEAVE" onPress={onLeave} filledColor={C.lime} arrowIcon="close" />
           ) : (
             <SplitCTA testID="join-game" label={`JOIN GAME (${4 - game.players.length} SPOT${game.players.length === 3 ? "" : "S"})`} onPress={onJoin} disabled={game.players.length >= 4} />
           )}

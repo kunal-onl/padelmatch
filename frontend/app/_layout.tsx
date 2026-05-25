@@ -48,6 +48,7 @@ export default function RootLayout() {
             <Stack.Screen name="profile/[id]" />
             <Stack.Screen name="score/[matchId]" />
             <Stack.Screen name="notifications" />
+            <Stack.Screen name="brand-kit" />
           </Stack>
         </PlayerProvider>
       </SafeAreaProvider>

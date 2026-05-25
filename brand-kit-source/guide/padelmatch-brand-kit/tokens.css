@@ -1,0 +1,59 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PADELMATCH BRAND KIT — DESIGN TOKENS (CSS)
+   Drop into any project. Import once at app root.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── COLOURS ───────────────────────────── */
+  --pm-lime:    #C9E52F;   /* Primary — CTAs, active nav, rating, #1 rank */
+  --pm-blue:    #1A56FF;   /* Secondary — rank, section headers, later-slots */
+  --pm-purple:  #6E28D9;   /* Tertiary — profile, info, connections */
+  --pm-ink:     #111118;   /* Anchor — type, borders, nav bg */
+  --pm-cream:   #F5F2E8;   /* Background — warm app surface */
+  --pm-white:   #FFFFFF;   /* Card surface */
+  --pm-error:   #FF4136;   /* Error ONLY — never decoratively */
+  --pm-win:     #1A6B3A;   /* Win state */
+  --pm-loss:    #B52A1C;   /* Loss state */
+  --pm-grey:    #888888;   /* Secondary text */
+  --pm-border:  #DDDAD0;   /* Subtle borders */
+
+  /* ── TYPOGRAPHY ─────────────────────────── */
+  --pm-font-display: 'Unbounded', 'Arial Black', sans-serif;
+  --pm-font-body:    'DM Sans', sans-serif;
+  --pm-font-mono:    'DM Mono', monospace;
+
+  /* ── STROKE WEIGHTS ─────────────────────── */
+  --pm-s1: 1px;   /* Internal subdivisions, row separators */
+  --pm-s2: 2px;   /* Standard default */
+  --pm-s3: 3px;   /* Primary structural */
+
+  /* ── ACCENT STROKES ─────────────────────── */
+  --pm-accent-top:  5px;   /* Category (what card IS) */
+  --pm-accent-left: 4px;   /* Status (what IS HAPPENING) */
+
+  /* ── SPACING (4px base unit) ────────────── */
+  --pm-sp1: 4px;   --pm-sp2: 8px;
+  --pm-sp3: 12px;  --pm-sp4: 16px;
+  --pm-sp5: 20px;  --pm-sp6: 24px;
+  --pm-sp8: 32px;  --pm-sp10: 40px;
+
+  /* ── CONTAINER DETAILS ──────────────────── */
+  --pm-corner-mark:  16px;
+  --pm-inner-inset:  4px;
+
+  /* ── TEXTURE OPACITIES ──────────────────── */
+  --pm-tx-subtle:   0.04;
+  --pm-tx-standard: 0.06;
+  --pm-tx-bold:     0.12;
+
+  /* ── MIN TOUCH TARGET ───────────────────── */
+  --pm-touch-min:   48px;
+}
+
+/* Base body — use cream as app surface */
+body {
+  background: var(--pm-cream);
+  color: var(--pm-ink);
+  font-family: var(--pm-font-body);
+  margin: 0;
+}

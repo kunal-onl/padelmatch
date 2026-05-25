@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PadelMatch · Brand Assets v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --lime:   #C9E52F;
+    --blue:   #1A56FF;
+    --purple: #6E28D9;
+    --ink:    #111118;
+    --cream:  #F5F2E8;
+    --white:  #FFFFFF;
+    --grey:   #888888;
+    --border: #DDDAD0;
+    --ub:   'Unbounded', 'Arial Black', sans-serif;
+    --sans: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--cream);
+    font-family: var(--sans);
+    color: var(--ink);
+    padding: 0 0 120px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .top { background: var(--ink); padding: 32px 32px 26px; border-bottom: 4px solid var(--lime); position: relative; overflow: hidden; }
+  .top::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 29px, rgba(201,229,47,0.05) 30px),
+      repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(201,229,47,0.05) 60px);
+    pointer-events: none;
+  }
+  .top > * { position: relative; }
+  .eyebrow { font-family: var(--mono); font-size: 9px; color: var(--lime); letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 10px; }
+  .title    { font-family: var(--ub); font-size: 36px; font-weight: 900; color: var(--white); letter-spacing: -0.03em; line-height: 1; margin-bottom: 8px; }
+  .subtitle { font-family: var(--ub); font-size: 14px; font-weight: 400; color: var(--lime); letter-spacing: -0.01em; max-width: 720px; }
+  .meta     { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 14px; letter-spacing: 0.1em; }
+  .top-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+  .top-actions button { border: 2px solid var(--lime); background: transparent; font-family: var(--ub); font-size: 9px; font-weight: 700; color: var(--lime); letter-spacing: 0.08em; padding: 8px 14px; cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
+  .top-actions button:hover { background: var(--lime); color: var(--ink); }
+
+  /* ── Section headers ── */
+  .section-label { display: flex; align-items: center; border: 2px solid var(--ink); margin: 36px 32px 18px; background: var(--ink); }
+  .section-label .num  { background: var(--lime); width: 48px; align-self: stretch; display: flex; align-items: center; justify-content: center; font-family: var(--ub); font-size: 12px; font-weight: 900; color: var(--ink); }
+  .section-label .name { padding: 11px 16px; font-family: var(--ub); font-size: 12px; font-weight: 700; color: var(--white); letter-spacing: -0.02em; flex: 1; }
+  .section-label .count { padding: 11px 16px; font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; }
+  .section-label.blue .num   { background: var(--blue); color: var(--white); }
+  .section-label.purple .num { background: var(--purple); color: var(--white); }
+  .section-label.lime .num   { background: var(--lime); color: var(--ink); }
+
+  .notes { font-family: var(--sans); font-size: 13px; color: var(--grey); line-height: 1.65; margin: 8px 32px 18px; max-width: 760px; }
+  .notes b { color: var(--ink); font-weight: 600; }
+
+  /* ── Asset grid ── */
+  .asset-grid { padding: 0 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+  .asset-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+
+  .asset-card { border: 2px solid var(--ink); background: var(--white); display: flex; flex-direction: column; overflow: hidden; }
+  .asset-card .head { background: var(--ink); padding: 8px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .asset-card .head .ttl { font-family: var(--ub); font-size: 10px; font-weight: 700; color: var(--lime); letter-spacing: 0.06em; }
+  .asset-card .head .sub { font-family: var(--mono); font-size: 8px; color: rgba(255,255,255,0.45); letter-spacing: 0.08em; }
+
+  .asset-card .preview {
+    padding: 36px 24px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--cream);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(17,17,24,0.06) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(17,17,24,0.06) 64px);
+    min-height: 200px;
+  }
+  .asset-card .preview.bg-white { background: var(--white); background-image: none; }
+  .asset-card .preview.bg-ink   { background: var(--ink); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.04) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(255,255,255,0.04) 64px);
+  }
+  .asset-card .preview.bg-lime  { background: var(--lime); background-image: none; }
+  .asset-card .preview svg { max-width: 100%; height: auto; }
+
+  .asset-card .meta-row { display: flex; justify-content: space-between; padding: 8px 14px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border-top: 1px solid var(--border); background: #FAFAF6; }
+  .actions button { flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--ink); background: var(--white); font-family: var(--ub); font-size: 8.5px; font-weight: 700; color: var(--ink); letter-spacing: 0.05em; padding: 7px 6px; cursor: pointer; text-transform: uppercase; transition: all 0.12s; }
+  .actions button:hover { background: var(--ink); color: var(--lime); }
+  .actions button.primary { background: var(--ink); color: var(--lime); }
+  .actions button.primary:hover { background: var(--lime); color: var(--ink); border-color: var(--lime); }
+  .actions button.flash { background: var(--lime); color: var(--ink); border-color: var(--lime); }
+
+  /* ── Palette section ── */
+  .palette { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 0 32px; }
+  .swatch { border: 2px solid var(--ink); background: var(--white); overflow: hidden; cursor: pointer; transition: transform 0.15s; }
+  .swatch:hover { transform: translateY(-2px); }
+  .swatch .chip { height: 92px; }
+  .swatch .info { padding: 10px 14px 12px; background: var(--white); }
+  .swatch .info .name { font-family: var(--ub); font-size: 11px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .swatch .info .hex  { font-family: var(--mono); font-size: 10px; color: var(--grey); margin-top: 4px; letter-spacing: 0.08em; }
+  .swatch .info .role { font-family: var(--mono); font-size: 8px; color: var(--grey); margin-top: 6px; letter-spacing: 0.12em; text-transform: uppercase; }
+
+  /* ── Animated preview / embed ── */
+  .anim-card { border: 2px solid var(--ink); background: var(--white); margin: 0 32px; overflow: hidden; }
+  .anim-card .head { background: var(--ink); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .anim-card .head .ttl { font-family: var(--ub); font-size: 11px; font-weight: 700; color: var(--lime); letter-spacing: 0.06em; }
+  .anim-card .head .sub { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.45); letter-spacing: 0.08em; }
+  .anim-card .stage { padding: 48px 24px; display: flex; align-items: center; justify-content: center; gap: 56px; flex-wrap: wrap; }
+  .anim-card .stage.ink { background: var(--ink); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.04) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(255,255,255,0.04) 64px);
+  }
+  .anim-card .stage svg { display: block; }
+  .anim-card .actions { background: #FAFAF6; }
+  .anim-card .actions button { flex: 0 1 auto; padding: 9px 14px; font-size: 9px; }
+  .anim-card .embed { background: #1A1A22; color: #C9E52F; font-family: var(--mono); font-size: 11px; padding: 14px 16px; overflow-x: auto; white-space: pre; border-top: 1px solid var(--border); line-height: 1.6; }
+  .anim-card .embed .com { color: rgba(201,229,47,0.45); }
+
+  /* ── Usage / specs ── */
+  .specs { padding: 0 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .spec-card { border: 2px solid var(--ink); background: var(--white); overflow: hidden; }
+  .spec-card .head { background: var(--ink); padding: 8px 14px; font-family: var(--ub); font-size: 9px; font-weight: 700; color: var(--lime); letter-spacing: 0.08em; }
+  .spec-card .body { padding: 16px; }
+  .spec-card .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--border); font-family: var(--mono); font-size: 10px; }
+  .spec-card .row:last-child { border-bottom: none; }
+  .spec-card .row .k { color: var(--grey); letter-spacing: 0.06em; text-transform: uppercase; font-size: 8.5px; }
+  .spec-card .row .v { color: var(--ink); font-weight: 500; }
+
+  /* clearspace illustration */
+  .clearspace { position: relative; background: var(--cream); padding: 36px; display: flex; align-items: center; justify-content: center; min-height: 200px; }
+  .clearspace .frame { position: relative; padding: 28px; border: 1px dashed var(--blue); }
+  .clearspace .frame::before, .clearspace .frame::after { content: ''; position: absolute; background: var(--blue); }
+  .clearspace .label { position: absolute; bottom: 8px; right: 12px; font-family: var(--mono); font-size: 9px; color: var(--blue); letter-spacing: 0.08em; }
+
+  /* min size strip */
+  .minsize-strip { display: flex; align-items: flex-end; justify-content: center; gap: 22px; padding: 30px 16px 16px; background: var(--cream); }
+  .minsize-strip .ms-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .minsize-strip .ms-tile .tag { font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* signoff */
+  .signoff { margin: 32px 32px 0; padding: 18px 22px; border: 2px solid var(--ink); background: var(--white); display: flex; gap: 14px; align-items: flex-start; }
+  .signoff .tag { background: var(--lime); padding: 4px 8px; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--ink); letter-spacing: 0.1em; flex-shrink: 0; }
+  .signoff .txt { font-family: var(--sans); font-size: 12px; color: var(--ink); line-height: 1.6; }
+  .signoff .txt + .txt { margin-top: 6px; }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--ink); color: var(--lime); padding: 10px 18px;
+    font-family: var(--ub); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    border: 2px solid var(--lime); pointer-events: none; opacity: 0; transition: all 0.25s; z-index: 100;
+    text-transform: uppercase;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="eyebrow">padelmatch.in · brand assets v1 · 24 may 2026</div>
+  <div class="title">BRAND ASSETS</div>
+  <div class="subtitle">Download-ready SVGs, PNGs, and animated marks. Pixel-identical to the approved Logo Lab v5 geometry.</div>
+  <div class="meta">RIGHT-CLICK ANY MARK TO SAVE · OR USE THE FORMAT BUTTONS UNDER EACH ASSET</div>
+  <div class="top-actions">
+    <button id="download-all-svg">↓ DOWNLOAD ALL · SVG ZIP</button>
+    <button id="download-all-png">↓ DOWNLOAD ALL · PNG ZIP</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     01 · COLOR PALETTE
+═══════════════════════════════════════════ -->
+<div class="section-label lime">
+  <div class="num">01</div>
+  <div class="name">COLOR PALETTE</div>
+  <div class="count">5 TOKENS · CLICK TO COPY HEX</div>
+</div>
+<div class="notes">
+  The full brand palette. <b>Lime</b> + <b>blue</b> are the active "match" pair — used together in the primary mark. <b>Purple</b> is a tertiary accent for ratings, badges, secondary CTAs. <b>Ink</b> + <b>cream</b> are the foundational neutrals.
+</div>
+<div class="palette" id="palette"></div>
+
+<!-- ═══════════════════════════════════════════
+     02 · PRIMARY MARK
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">02</div>
+  <div class="name">PRIMARY MARK</div>
+  <div class="count">DEFAULT IDENTITY · 3 BACKGROUNDS</div>
+</div>
+<div class="notes">
+  The court-grid mark with TL·lime and BR·blue diagonal — the default static identity. Use this for app icons, favicons, OG cards, hero placements.
+</div>
+<div class="asset-grid cols-2" id="grid-primary"></div>
+
+<!-- ═══════════════════════════════════════════
+     03 · LETTER MARKS — P / M
+═══════════════════════════════════════════ -->
+<div class="section-label purple">
+  <div class="num">03</div>
+  <div class="name">LETTER MARKS — P &amp; M</div>
+  <div class="count">LINE-COLORED LETTERFORMS</div>
+</div>
+<div class="notes">
+  P (lime) and M (blue) drawn from the court grid itself. Use as decorative endcaps in copy ("…matched on <b>P</b>adelMatch"), as section dividers, in marketing collateral, or as standalone monograms.
+</div>
+<div class="asset-grid" id="grid-letters"></div>
+
+<!-- ═══════════════════════════════════════════
+     04 · PATTERN VARIATIONS
+═══════════════════════════════════════════ -->
+<div class="section-label blue">
+  <div class="num">04</div>
+  <div class="name">PATTERN VARIATIONS</div>
+  <div class="count">STATIC FILL COMPOSITIONS</div>
+</div>
+<div class="notes">
+  Alternate cell-fill compositions for editorial / illustrative use — rating result tiles, loading splash, social shareables. Not interchangeable with the primary mark; these reinforce the brand without replacing it.
+</div>
+<div class="asset-grid" id="grid-patterns"></div>
+
+<!-- ═══════════════════════════════════════════
+     05 · ANIMATED MARK
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">05</div>
+  <div class="name">ANIMATED MARK — ALGORITHM PULSE</div>
+  <div class="count">SMIL · ~5s LOOP · NATIVE SVG</div>
+</div>
+<div class="notes">
+  Self-contained animated SVG using SMIL — no JS required. Drops into any modern browser. Use for "finding your match" loaders, web hero panels, email signatures, video stingers. Download the file, or paste the embed snippet inline.
+</div>
+<div class="anim-card">
+  <div class="head">
+    <span class="ttl">ALGORITHM PULSE · ON INK</span>
+    <span class="sub">cells + line-letters · 8 frames · 4580ms</span>
+  </div>
+  <div class="stage ink" id="anim-stage-ink"></div>
+  <div class="actions">
+    <button class="primary" data-anim="ink" data-fmt="svg">↓ DOWNLOAD .SVG</button>
+    <button data-anim="ink" data-fmt="copy">COPY MARKUP</button>
+    <button data-anim="ink" data-fmt="embed">COPY EMBED CODE</button>
+  </div>
+  <div class="embed"><span class="com">&lt;!-- paste into any HTML page --&gt;</span>
+&lt;img src=&quot;padelmatch-pulse-ink.svg&quot; alt=&quot;PadelMatch&quot; width=&quot;240&quot; /&gt;</div>
+</div>
+
+<div style="height: 16px;"></div>
+
+<div class="anim-card">
+  <div class="head">
+    <span class="ttl">ALGORITHM PULSE · ON CREAM</span>
+    <span class="sub">same loop, light context</span>
+  </div>
+  <div class="stage" id="anim-stage-cream"></div>
+  <div class="actions">
+    <button class="primary" data-anim="cream" data-fmt="svg">↓ DOWNLOAD .SVG</button>
+    <button data-anim="cream" data-fmt="copy">COPY MARKUP</button>
+    <button data-anim="cream" data-fmt="embed">COPY EMBED CODE</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     06 · USAGE / SPECS
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">06</div>
+  <div class="name">USAGE NOTES</div>
+  <div class="count">SIZING · CLEARSPACE · COLORS</div>
+</div>
+<div class="specs">
+
+  <div class="spec-card">
+    <div class="head">DIMENSIONS</div>
+    <div class="body">
+      <div class="row"><span class="k">VIEWBOX</span><span class="v">5 23 90 56</span></div>
+      <div class="row"><span class="k">ASPECT</span><span class="v">90 : 56 (≈1.61)</span></div>
+      <div class="row"><span class="k">MIN · DIGITAL</span><span class="v">48 × 30 px</span></div>
+      <div class="row"><span class="k">MIN · PRINT</span><span class="v">12 × 7.5 mm</span></div>
+      <div class="row"><span class="k">CLEARSPACE</span><span class="v">≥ ½ mark height all sides</span></div>
+    </div>
+  </div>
+
+  <div class="spec-card">
+    <div class="head">COLOR USAGE</div>
+    <div class="body">
+      <div class="row"><span class="k">DEFAULT MARK</span><span class="v">TL · LIME  ·  BR · BLUE</span></div>
+      <div class="row"><span class="k">P-LETTER</span><span class="v">LIME #C9E52F</span></div>
+      <div class="row"><span class="k">M-LETTER</span><span class="v">BLUE #1A56FF</span></div>
+      <div class="row"><span class="k">OUTLINE · LIGHT</span><span class="v">INK #111118</span></div>
+      <div class="row"><span class="k">OUTLINE · DARK</span><span class="v">WHITE #FFFFFF</span></div>
+    </div>
+  </div>
+
+  <div class="spec-card">
+    <div class="head">FILE FORMATS</div>
+    <div class="body">
+      <div class="row"><span class="k">SVG · STATIC</span><span class="v">UI · WEB · PRINT</span></div>
+      <div class="row"><span class="k">PNG @256</span><span class="v">SOCIAL · OG · EMAIL</span></div>
+      <div class="row"><span class="k">PNG @512</span><span class="v">APP ICON</span></div>
+      <div class="row"><span class="k">PNG @1024</span><span class="v">RETINA · HERO</span></div>
+      <div class="row"><span class="k">SVG · ANIMATED</span><span class="v">LOADER · WEB STINGER</span></div>
+    </div>
+  </div>
+
+  <div class="spec-card">
+    <div class="head">CLEARSPACE</div>
+    <div class="clearspace">
+      <div class="frame">
+        <svg width="120" height="75" viewBox="5 23 90 56" id="clearspace-mark"></svg>
+        <div class="label">x ≥ ½h</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-card">
+    <div class="head">MIN SIZES</div>
+    <div class="minsize-strip">
+      <div class="ms-tile">
+        <svg width="48" height="30" viewBox="5 23 90 56" class="ms-svg" data-variant="default"></svg>
+        <span class="tag">48px MIN</span>
+      </div>
+      <div class="ms-tile">
+        <svg width="96" height="60" viewBox="5 23 90 56" class="ms-svg" data-variant="default"></svg>
+        <span class="tag">96px</span>
+      </div>
+      <div class="ms-tile">
+        <svg width="160" height="100" viewBox="5 23 90 56" class="ms-svg" data-variant="default"></svg>
+        <span class="tag">160px</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-card">
+    <div class="head">DON'T</div>
+    <div class="body" style="font-family: var(--sans); font-size: 12px; color: var(--ink); line-height: 1.65;">
+      <div style="padding: 4px 0;">→ Don't change cell-fill colors outside the palette</div>
+      <div style="padding: 4px 0;">→ Don't rotate, skew, or stretch the mark</div>
+      <div style="padding: 4px 0;">→ Don't outline the mark with a stroke</div>
+      <div style="padding: 4px 0;">→ Don't place on busy photography — use a solid bg or scrim</div>
+      <div style="padding: 4px 0;">→ Don't drop shadows or glows on the mark</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Sign-off -->
+<div class="signoff">
+  <span class="tag">NEXT</span>
+  <div>
+    <div class="txt"><b>What's here:</b> static SVG + PNG (3 sizes) + animated SVG, on cream / white / ink / lime backgrounds. All assets share one geometry — derived from the same court path used in app and product UI.</div>
+    <div class="txt"><b>Likely next steps:</b> (a) wordmark exploration — "PADELMATCH" type lockup, (b) avatar / favicon variants (square crops, dotted favicon at 16px), (c) social card templates (OG image, Twitter card, story format), (d) motion library — extra loop variants (sweep, scatter, rating reveal).</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════
+     ENGINE
+═══════════════════════════════════════════ -->
+<script>
+  // ── Color tokens ────────────────────────────────
+  const C = {
+    lime:   '#C9E52F',
+    blue:   '#1A56FF',
+    purple: '#6E28D9',
+    ink:    '#111118',
+    cream:  '#F5F2E8',
+    white:  '#FFFFFF',
+  };
+
+  const PALETTE = [
+    { name: 'LIME',   hex: C.lime,   role: 'PRIMARY · MATCH A' },
+    { name: 'BLUE',   hex: C.blue,   role: 'PRIMARY · MATCH B' },
+    { name: 'PURPLE', hex: C.purple, role: 'TERTIARY · ACCENT' },
+    { name: 'INK',    hex: C.ink,    role: 'NEUTRAL · OUTLINE' },
+    { name: 'CREAM',  hex: C.cream,  role: 'NEUTRAL · GROUND' },
+  ];
+
+  // ── Geometry (mirrors Logo Lab v5) ──────────────
+  const CELLS = {
+    L:  { x: 12.371, y: 36.597, w:  9.555, h: 26.797 },
+    TL: { x: 26.094, y: 36.601, w: 21.930, h: 11.316 },
+    TR: { x: 52.192, y: 36.601, w: 21.930, h: 11.316 },
+    BL: { x: 26.094, y: 52.081, w: 21.930, h: 11.309 },
+    BR: { x: 52.192, y: 52.081, w: 21.930, h: 11.309 },
+    R:  { x: 78.290, y: 36.593, w:  9.555, h: 26.797 },
+  };
+  const CELL_BLEED = 0.35;
+
+  const LETTER_TOP = 28.240;
+  const LETTER_BOTTOM = 71.764;
+  const LETTER_H = LETTER_BOTTOM - LETTER_TOP;
+  const LETTER_BLEED = 0.4;
+
+  const P_RECTS = [
+    { x: 12.371, y: LETTER_TOP, w: 13.723, h: LETTER_H },
+    { x: 21.926, y: LETTER_TOP, w: 30.266, h: 36.601 - LETTER_TOP },
+    { x: 48.024, y: LETTER_TOP, w:  4.168, h: 52.081 - LETTER_TOP },
+    { x: 21.926, y: 47.917,     w: 30.266, h: 52.081 - 47.917 },
+  ];
+  const M_RECTS = [
+    { x: 12.371, y: LETTER_TOP, w: 13.723, h: LETTER_H },
+    { x: 74.122, y: LETTER_TOP, w: 13.723, h: LETTER_H },
+    { x: 12.371, y: LETTER_TOP, w: 75.474, h: 36.601 - LETTER_TOP },
+    { x: 48.024, y: LETTER_TOP, w:  4.168, h: 47.917 - LETTER_TOP },
+  ];
+
+  const COURT_PATH = "m89.922 26.156h-79.633c-1.1523 0-2.082 0.93359-2.082 2.082v6.2617 0.011719 0.011719 30.945 0.011719 0.011719 6.2734c0 1.1484 0.92969 2.082 2.082 2.082h79.637c1.1523 0 2.082-0.93359 2.082-2.082v-43.527c0-1.1484-0.92969-2.082-2.082-2.082zm-77.551 37.238v-26.797h9.5547v26.797zm13.723-26.793h21.93v11.316h-21.93zm26.098 0h21.93v11.316h-21.93zm-26.098 15.48h21.93v11.309h-21.93zm26.098 11.309v-11.309h21.93v11.309zm26.098-26.797h9.5547v26.797h-9.5547zm9.5547-4.168h-35.652v-2.1055h35.652zm-39.82-2.1055v2.1055l-35.652 0.003907v-2.1055h35.648zm-35.652 37.238h11.613s0.015625 0.003906 0.023437 0.003906h24.012v2.1133h-35.648zm39.816 2.1172v-2.1133h24.016s0.015625-0.003906 0.023437-0.003906h11.613v2.1172z";
+
+  // ═══════════════════════════════════════════
+  //  SVG BUILDER (string-based, exportable)
+  // ═══════════════════════════════════════════
+  function buildLogoSVG({ cellFills = {}, showLetter = null, onInk = false, bgColor = null, width = 360, includeXMLDecl = false } = {}) {
+    const outlineColor = onInk ? C.white : C.ink;
+    const height = Math.round(width * 56 / 90);
+    const aspect = 56 / 90;
+
+    let svg = '';
+    if (includeXMLDecl) svg += '<?xml version="1.0" encoding="UTF-8"?>\n';
+    svg += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="5 23 90 56" width="${width}" height="${Math.round(width * aspect)}" role="img" aria-label="PadelMatch logo">`;
+
+    // Background (only if explicitly set)
+    if (bgColor) {
+      svg += `<rect x="5" y="23" width="90" height="56" fill="${bgColor}"/>`;
+    }
+
+    // Cell fills (skip transparent — keeps SVG minimal)
+    for (const [name, c] of Object.entries(CELLS)) {
+      const fill = cellFills[name];
+      if (!fill) continue;
+      const b = CELL_BLEED;
+      svg += `<rect x="${(c.x - b).toFixed(3)}" y="${(c.y - b).toFixed(3)}" width="${(c.w + b*2).toFixed(3)}" height="${(c.h + b*2).toFixed(3)}" fill="${fill}"/>`;
+    }
+
+    // Court outline
+    svg += `<path d="${COURT_PATH}" fill="${outlineColor}" fill-rule="evenodd"/>`;
+
+    // Letter shape
+    const b = LETTER_BLEED;
+    if (showLetter === 'P') {
+      for (const r of P_RECTS) {
+        svg += `<rect x="${(r.x - b).toFixed(3)}" y="${(r.y - b).toFixed(3)}" width="${(r.w + b*2).toFixed(3)}" height="${(r.h + b*2).toFixed(3)}" fill="${C.lime}"/>`;
+      }
+    } else if (showLetter === 'M') {
+      for (const r of M_RECTS) {
+        svg += `<rect x="${(r.x - b).toFixed(3)}" y="${(r.y - b).toFixed(3)}" width="${(r.w + b*2).toFixed(3)}" height="${(r.h + b*2).toFixed(3)}" fill="${C.blue}"/>`;
+      }
+    }
+
+    svg += '</svg>';
+    return svg;
+  }
+
+  // ═══════════════════════════════════════════
+  //  ANIMATED SVG (SMIL)
+  // ═══════════════════════════════════════════
+  const PULSE_FRAMES = [
+    { name: 'DIAGONAL', cells: { TL: C.lime, BR: C.blue }, letter: null, ms: 600 },
+    { name: 'SWAP',     cells: { TR: C.lime, BL: C.blue }, letter: null, ms: 480 },
+    { name: 'BUILD',    cells: { L: C.lime, TL: C.lime, BR: C.blue, R: C.blue }, letter: null, ms: 400 },
+    { name: 'P',        cells: {}, letter: 'P', ms: 900 },
+    { name: 'TRANS',    cells: { L: C.lime, R: C.blue }, letter: null, ms: 320 },
+    { name: 'M',        cells: {}, letter: 'M', ms: 900 },
+    { name: 'PULSE',    cells: { TL: C.lime, TR: C.blue, BL: C.blue, BR: C.lime }, letter: null, ms: 280 },
+    { name: 'RESET',    cells: { TL: C.lime, BR: C.blue }, letter: null, ms: 700 },
+  ];
+
+  function buildAnimatedSVG({ onInk = false, bgColor = null, width = 360, includeXMLDecl = false } = {}) {
+    const outlineColor = onInk ? C.white : C.ink;
+    const totalMs = PULSE_FRAMES.reduce((s, f) => s + f.ms, 0);
+    const durSec = (totalMs / 1000).toFixed(3) + 's';
+
+    // Build keyTimes: cumulative time + final loopback = totalMs
+    // values[i] holds from keyTimes[i] to keyTimes[i+1]
+    let cum = 0;
+    const keyTimes = [0];
+    for (const f of PULSE_FRAMES) {
+      cum += f.ms;
+      keyTimes.push(+(cum / totalMs).toFixed(4));
+    }
+    // keyTimes has length n+1. For discrete calcMode, values length = keyTimes.length - 1? 
+    // SMIL: discrete needs values.length === keyTimes.length; the last value is held at keyTime[last].
+    // We'll use values.length = n+1 with values[n] = values[0] (loopback).
+    const keyTimesAttr = keyTimes.join(';');
+
+    function valuesForCell(name) {
+      const arr = PULSE_FRAMES.map(f => f.cells[name] || 'transparent');
+      arr.push(arr[0]); // loopback
+      return arr.join(';');
+    }
+    function valuesForLetterOpacity(letter) {
+      const arr = PULSE_FRAMES.map(f => f.letter === letter ? '1' : '0');
+      arr.push(arr[0]);
+      return arr.join(';');
+    }
+
+    let svg = '';
+    if (includeXMLDecl) svg += '<?xml version="1.0" encoding="UTF-8"?>\n';
+    svg += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="5 23 90 56" width="${width}" height="${Math.round(width * 56/90)}" role="img" aria-label="PadelMatch animated mark">`;
+
+    if (bgColor) {
+      svg += `<rect x="5" y="23" width="90" height="56" fill="${bgColor}"/>`;
+    }
+
+    // Animated cell fills
+    for (const [name, c] of Object.entries(CELLS)) {
+      const b = CELL_BLEED;
+      svg += `<rect x="${(c.x - b).toFixed(3)}" y="${(c.y - b).toFixed(3)}" width="${(c.w + b*2).toFixed(3)}" height="${(c.h + b*2).toFixed(3)}" fill="transparent">`;
+      svg += `<animate attributeName="fill" calcMode="discrete" values="${valuesForCell(name)}" keyTimes="${keyTimesAttr}" dur="${durSec}" repeatCount="indefinite"/>`;
+      svg += `</rect>`;
+    }
+
+    // Court outline
+    svg += `<path d="${COURT_PATH}" fill="${outlineColor}" fill-rule="evenodd"/>`;
+
+    // Letter groups with animated opacity
+    const b = LETTER_BLEED;
+    svg += `<g opacity="0">`;
+    svg += `<animate attributeName="opacity" calcMode="discrete" values="${valuesForLetterOpacity('P')}" keyTimes="${keyTimesAttr}" dur="${durSec}" repeatCount="indefinite"/>`;
+    for (const r of P_RECTS) {
+      svg += `<rect x="${(r.x - b).toFixed(3)}" y="${(r.y - b).toFixed(3)}" width="${(r.w + b*2).toFixed(3)}" height="${(r.h + b*2).toFixed(3)}" fill="${C.lime}"/>`;
+    }
+    svg += `</g>`;
+
+    svg += `<g opacity="0">`;
+    svg += `<animate attributeName="opacity" calcMode="discrete" values="${valuesForLetterOpacity('M')}" keyTimes="${keyTimesAttr}" dur="${durSec}" repeatCount="indefinite"/>`;
+    for (const r of M_RECTS) {
+      svg += `<rect x="${(r.x - b).toFixed(3)}" y="${(r.y - b).toFixed(3)}" width="${(r.w + b*2).toFixed(3)}" height="${(r.h + b*2).toFixed(3)}" fill="${C.blue}"/>`;
+    }
+    svg += `</g>`;
+
+    svg += '</svg>';
+    return svg;
+  }
+
+  // ═══════════════════════════════════════════
+  //  DOWNLOAD / COPY HELPERS
+  // ═══════════════════════════════════════════
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  }
+
+  function downloadSVG(filename, svgString) {
+    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    downloadBlob(blob, filename);
+  }
+
+  async function svgToPNGBlob(svgString, pxWidth) {
+    const aspect = 56 / 90;
+    const pxHeight = Math.round(pxWidth * aspect);
+    // Use a viewBox-only SVG (drop width/height so canvas scales correctly)
+    const cleanSVG = svgString.replace(/width="\d+"\s+height="\d+"/, `width="${pxWidth}" height="${pxHeight}"`);
+    const blob = new Blob([cleanSVG], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = pxWidth;
+    canvas.height = pxHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, pxWidth, pxHeight);
+    URL.revokeObjectURL(url);
+    return await new Promise(res => canvas.toBlob(res, 'image/png'));
+  }
+
+  async function downloadPNG(filename, svgString, pxWidth) {
+    const blob = await svgToPNGBlob(svgString, pxWidth);
+    downloadBlob(blob, filename);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard) return navigator.clipboard.writeText(text);
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
+  // Toast
+  let toastTimer = null;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+  }
+
+  // ═══════════════════════════════════════════
+  //  ASSET CARD COMPONENT
+  // ═══════════════════════════════════════════
+  function makeAssetCard({ title, sub, slug, bg, opts, sizes = [256, 512, 1024] }) {
+    const card = document.createElement('div');
+    card.className = 'asset-card';
+
+    const svgString = buildLogoSVG(opts);
+
+    card.innerHTML = `
+      <div class="head">
+        <span class="ttl">${title}</span>
+        <span class="sub">${sub}</span>
+      </div>
+      <div class="preview bg-${bg}">${svgString.replace(/width="\d+" height="\d+"/, 'width="240"')}</div>
+      <div class="meta-row">
+        <span>${slug}.svg</span>
+        <span>VECTOR · ${opts.showLetter ? 'LETTER' : 'MARK'}</span>
+      </div>
+      <div class="actions">
+        <button class="primary" data-action="svg">↓ SVG</button>
+        ${sizes.map(s => `<button data-action="png" data-size="${s}">PNG @${s}</button>`).join('')}
+        <button data-action="copy">COPY</button>
+      </div>
+    `;
+
+    card.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const action = btn.dataset.action;
+        if (action === 'svg') {
+          downloadSVG(`${slug}.svg`, buildLogoSVG({ ...opts, includeXMLDecl: true }));
+          flashBtn(btn, 'DOWNLOADED');
+        } else if (action === 'png') {
+          const size = +btn.dataset.size;
+          btn.textContent = '…';
+          await downloadPNG(`${slug}@${size}.png`, buildLogoSVG({ ...opts, width: size }), size);
+          btn.textContent = `PNG @${size}`;
+          flashBtn(btn, 'DOWNLOADED');
+        } else if (action === 'copy') {
+          await copyText(buildLogoSVG({ ...opts, includeXMLDecl: true }));
+          flashBtn(btn, 'COPIED');
+        }
+      });
+    });
+
+    return card;
+  }
+
+  function flashBtn(btn, label) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ ' + label;
+    btn.classList.add('flash');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('flash'); }, 1200);
+    toast(label);
+  }
+
+  // ═══════════════════════════════════════════
+  //  RENDER PAGE
+  // ═══════════════════════════════════════════
+
+  // Palette swatches
+  const paletteEl = document.getElementById('palette');
+  PALETTE.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'swatch';
+    el.innerHTML = `
+      <div class="chip" style="background:${p.hex}"></div>
+      <div class="info">
+        <div class="name">${p.name}</div>
+        <div class="hex">${p.hex.toUpperCase()}</div>
+        <div class="role">${p.role}</div>
+      </div>
+    `;
+    el.addEventListener('click', async () => {
+      await copyText(p.hex.toUpperCase());
+      toast('COPIED ' + p.hex.toUpperCase());
+    });
+    paletteEl.appendChild(el);
+  });
+
+  // 02 · Primary mark — 3 backgrounds
+  const primaryOpts = { cellFills: { TL: C.lime, BR: C.blue } };
+  [
+    { title: 'PRIMARY · CREAM', sub: 'recommended ground', slug: 'padelmatch-mark-cream', bg: 'cream', opts: { ...primaryOpts, bgColor: C.cream } },
+    { title: 'PRIMARY · WHITE', sub: 'minimal context',    slug: 'padelmatch-mark-white', bg: 'white', opts: { ...primaryOpts, bgColor: C.white } },
+    { title: 'PRIMARY · INK',   sub: 'on dark surfaces',    slug: 'padelmatch-mark-ink',   bg: 'ink',   opts: { ...primaryOpts, onInk: true, bgColor: C.ink } },
+  ].forEach(cfg => document.getElementById('grid-primary').appendChild(makeAssetCard(cfg)));
+
+  // 03 · Letter marks
+  const letterCfgs = [
+    { title: 'LETTER · P · CREAM', sub: 'lime stroke',    slug: 'padelmatch-P-cream', bg: 'cream', opts: { showLetter: 'P', bgColor: C.cream } },
+    { title: 'LETTER · P · INK',   sub: 'lime on dark',   slug: 'padelmatch-P-ink',   bg: 'ink',   opts: { showLetter: 'P', onInk: true, bgColor: C.ink } },
+    { title: 'LETTER · M · CREAM', sub: 'blue stroke',    slug: 'padelmatch-M-cream', bg: 'cream', opts: { showLetter: 'M', bgColor: C.cream } },
+    { title: 'LETTER · M · INK',   sub: 'blue on dark',   slug: 'padelmatch-M-ink',   bg: 'ink',   opts: { showLetter: 'M', onInk: true, bgColor: C.ink } },
+  ];
+  letterCfgs.forEach(cfg => document.getElementById('grid-letters').appendChild(makeAssetCard(cfg)));
+
+  // 04 · Pattern variations
+  const patternCfgs = [
+    { title: 'DIAGONAL · ALT', sub: 'TR·lime  BL·blue',      slug: 'padelmatch-pattern-swap',       bg: 'cream', opts: { cellFills: { TR: C.lime, BL: C.blue }, bgColor: C.cream } },
+    { title: 'VOLLEY',         sub: 'top·lime  bot·blue',    slug: 'padelmatch-pattern-volley',     bg: 'white', opts: { cellFills: { TL: C.lime, TR: C.lime, BL: C.blue, BR: C.blue }, bgColor: C.white } },
+    { title: 'SIDES',          sub: 'L·lime  R·blue',        slug: 'padelmatch-pattern-sides',      bg: 'cream', opts: { cellFills: { L: C.lime, R: C.blue }, bgColor: C.cream } },
+    { title: 'ACTIVE PLAYERS', sub: 'four corners',          slug: 'padelmatch-pattern-active',     bg: 'ink',   opts: { cellFills: { L: C.lime, TR: C.blue, BL: C.blue, R: C.lime }, onInk: true, bgColor: C.ink } },
+  ];
+  patternCfgs.forEach(cfg => document.getElementById('grid-patterns').appendChild(makeAssetCard(cfg)));
+
+  // 05 · Animated previews — render inline
+  const animInkSVG    = buildAnimatedSVG({ onInk: true,  bgColor: C.ink,   width: 220 });
+  const animCreamSVG  = buildAnimatedSVG({ onInk: false, bgColor: null,    width: 220 });
+  document.getElementById('anim-stage-ink').innerHTML   = animInkSVG;
+  document.getElementById('anim-stage-cream').innerHTML = animCreamSVG;
+
+  // Animated buttons
+  document.querySelectorAll('button[data-anim]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const variant = btn.dataset.anim;
+      const fmt = btn.dataset.fmt;
+      const opts = variant === 'ink'
+        ? { onInk: true, bgColor: C.ink, width: 480, includeXMLDecl: true }
+        : { onInk: false, bgColor: C.cream, width: 480, includeXMLDecl: true };
+      const slug = `padelmatch-pulse-${variant}`;
+      if (fmt === 'svg') {
+        downloadSVG(`${slug}.svg`, buildAnimatedSVG(opts));
+        flashBtn(btn, 'DOWNLOADED');
+      } else if (fmt === 'copy') {
+        await copyText(buildAnimatedSVG(opts));
+        flashBtn(btn, 'COPIED MARKUP');
+      } else if (fmt === 'embed') {
+        const embed = `<img src="${slug}.svg" alt="PadelMatch" width="240" />`;
+        await copyText(embed);
+        flashBtn(btn, 'COPIED EMBED');
+      }
+    });
+  });
+
+  // 06 · Spec card previews
+  document.getElementById('clearspace-mark').innerHTML = buildLogoSVG({ cellFills: { TL: C.lime, BR: C.blue }, width: 120 })
+    .replace(/<svg[^>]+>/, '').replace(/<\/svg>$/, '');
+  document.querySelectorAll('.ms-svg').forEach(el => {
+    el.innerHTML = buildLogoSVG({ cellFills: { TL: C.lime, BR: C.blue }, width: 240 })
+      .replace(/<svg[^>]+>/, '').replace(/<\/svg>$/, '');
+  });
+
+  // ═══════════════════════════════════════════
+  //  BULK DOWNLOAD (zip via JSZip if loaded; else fallback to sequential downloads)
+  // ═══════════════════════════════════════════
+  // No JSZip — fall back to sequential downloads with friendly note.
+  document.getElementById('download-all-svg').addEventListener('click', async () => {
+    const all = [
+      { name: 'padelmatch-mark-cream.svg',     svg: buildLogoSVG({ cellFills: { TL: C.lime, BR: C.blue }, bgColor: C.cream, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-mark-white.svg',     svg: buildLogoSVG({ cellFills: { TL: C.lime, BR: C.blue }, bgColor: C.white, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-mark-ink.svg',       svg: buildLogoSVG({ cellFills: { TL: C.lime, BR: C.blue }, onInk: true, bgColor: C.ink, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-P-cream.svg',        svg: buildLogoSVG({ showLetter: 'P', bgColor: C.cream, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-P-ink.svg',          svg: buildLogoSVG({ showLetter: 'P', onInk: true, bgColor: C.ink, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-M-cream.svg',        svg: buildLogoSVG({ showLetter: 'M', bgColor: C.cream, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-M-ink.svg',          svg: buildLogoSVG({ showLetter: 'M', onInk: true, bgColor: C.ink, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-pattern-volley.svg', svg: buildLogoSVG({ cellFills: { TL: C.lime, TR: C.lime, BL: C.blue, BR: C.blue }, bgColor: C.white, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-pattern-sides.svg',  svg: buildLogoSVG({ cellFills: { L: C.lime, R: C.blue }, bgColor: C.cream, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-pattern-active.svg', svg: buildLogoSVG({ cellFills: { L: C.lime, TR: C.blue, BL: C.blue, R: C.lime }, onInk: true, bgColor: C.ink, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-pulse-ink.svg',      svg: buildAnimatedSVG({ onInk: true, bgColor: C.ink, width: 512, includeXMLDecl: true }) },
+      { name: 'padelmatch-pulse-cream.svg',    svg: buildAnimatedSVG({ onInk: false, bgColor: C.cream, width: 512, includeXMLDecl: true }) },
+    ];
+    toast(`DOWNLOADING ${all.length} SVGs…`);
+    for (const f of all) {
+      downloadSVG(f.name, f.svg);
+      await new Promise(r => setTimeout(r, 250));
+    }
+  });
+
+  document.getElementById('download-all-png').addEventListener('click', async () => {
+    const all = [
+      { slug: 'padelmatch-mark-cream', opts: { cellFills: { TL: C.lime, BR: C.blue }, bgColor: C.cream } },
+      { slug: 'padelmatch-mark-white', opts: { cellFills: { TL: C.lime, BR: C.blue }, bgColor: C.white } },
+      { slug: 'padelmatch-mark-ink',   opts: { cellFills: { TL: C.lime, BR: C.blue }, onInk: true, bgColor: C.ink } },
+      { slug: 'padelmatch-P-cream',    opts: { showLetter: 'P', bgColor: C.cream } },
+      { slug: 'padelmatch-P-ink',      opts: { showLetter: 'P', onInk: true, bgColor: C.ink } },
+      { slug: 'padelmatch-M-cream',    opts: { showLetter: 'M', bgColor: C.cream } },
+      { slug: 'padelmatch-M-ink',      opts: { showLetter: 'M', onInk: true, bgColor: C.ink } },
+    ];
+    toast(`DOWNLOADING ${all.length} × 3 PNGs…`);
+    for (const f of all) {
+      for (const size of [256, 512, 1024]) {
+        await downloadPNG(`${f.slug}@${size}.png`, buildLogoSVG({ ...f.opts, width: size }), size);
+        await new Promise(r => setTimeout(r, 200));
+      }
+    }
+  });
+
+</script>
+
+</body>
+</html>

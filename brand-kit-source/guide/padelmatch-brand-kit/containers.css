@@ -1,0 +1,135 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PADELMATCH BRAND KIT — CONTAINER CLASSES
+   Six container types map to specific semantic contexts.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Type A — Closed Primary
+   Use for: Game Card, Player Card, Shot Card, Venue Card */
+.pm-card-a {
+  border: var(--pm-s3) solid var(--pm-ink);
+  background: var(--pm-white);
+  overflow: hidden;
+}
+.pm-card-a > .pm-accent-top {
+  height: var(--pm-accent-top);
+  background: var(--pm-blue);
+}
+.pm-card-a > .pm-accent-top--lime   { background: var(--pm-lime); }
+.pm-card-a > .pm-accent-top--blue   { background: var(--pm-blue); }
+.pm-card-a > .pm-accent-top--purple { background: var(--pm-purple); }
+
+/* Type B — Corner Mark
+   Use for: Stat Block, Rating Display, Radar Chart, Sparkline */
+.pm-card-b {
+  position: relative;
+  padding: var(--pm-sp4);
+}
+.pm-card-b::before,
+.pm-card-b::after,
+.pm-card-b > .pm-corner-bl,
+.pm-card-b > .pm-corner-br {
+  content: '';
+  position: absolute;
+  width: var(--pm-corner-mark);
+  height: var(--pm-corner-mark);
+  border-color: var(--pm-ink);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+.pm-card-b::before {
+  top: 0; left: 0;
+  border-top-width: var(--pm-s2);
+  border-left-width: var(--pm-s2);
+}
+.pm-card-b::after {
+  top: 0; right: 0;
+  border-top-width: var(--pm-s2);
+  border-right-width: var(--pm-s2);
+}
+.pm-card-b > .pm-corner-bl {
+  bottom: 0; left: 0;
+  border-bottom-width: var(--pm-s2);
+  border-left-width: var(--pm-s2);
+}
+.pm-card-b > .pm-corner-br {
+  bottom: 0; right: 0;
+  border-bottom-width: var(--pm-s2);
+  border-right-width: var(--pm-s2);
+}
+
+/* Type C — Left Accent
+   Use for: Notification Row, Match Banner, Connection State */
+.pm-card-c {
+  display: flex;
+  border: var(--pm-s2) solid var(--pm-ink);
+  background: var(--pm-white);
+  overflow: hidden;
+}
+.pm-card-c > .pm-left-accent {
+  width: var(--pm-accent-left);
+  flex-shrink: 0;
+  background: var(--pm-blue);
+}
+.pm-card-c > .pm-left-accent--lime   { background: var(--pm-lime); }
+.pm-card-c > .pm-left-accent--blue   { background: var(--pm-blue); }
+.pm-card-c > .pm-left-accent--purple { background: var(--pm-purple); }
+.pm-card-c > .pm-left-accent--error  { background: var(--pm-error); }
+.pm-card-c > .pm-card-c__body { flex: 1; padding: var(--pm-sp3) var(--pm-sp4); }
+
+/* Type D — Top Accent / Header Band
+   Use for: Section Header, Profile Header, Modal Header */
+.pm-card-d {
+  border: var(--pm-s2) solid var(--pm-ink);
+  background: var(--pm-white);
+  overflow: hidden;
+}
+.pm-card-d > .pm-header-band {
+  background: var(--pm-blue);
+  padding: var(--pm-sp2) var(--pm-sp4);
+  border-bottom: var(--pm-s2) solid var(--pm-ink);
+  font-family: var(--pm-font-display);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pm-white);
+}
+.pm-card-d > .pm-header-band--purple { background: var(--pm-purple); }
+.pm-card-d > .pm-header-band--lime   { background: var(--pm-lime); color: var(--pm-ink); }
+.pm-card-d > .pm-header-band--ink    { background: var(--pm-ink); color: var(--pm-lime); }
+
+/* Type E — Open-Sided
+   Use for: Pending Match, Score Pending, Awaiting Confirmation */
+.pm-card-e {
+  background: var(--pm-white);
+  border-top:    var(--pm-s2) solid var(--pm-ink);
+  border-right:  var(--pm-s2) solid var(--pm-ink);
+  border-left:   var(--pm-s2) solid var(--pm-ink);
+}
+.pm-card-e--open-top    { border-top: none;    border-bottom: var(--pm-s2) solid var(--pm-ink); }
+.pm-card-e--open-right  { border-right: none; }
+.pm-card-e--open-left   { border-left: none;  border-right: var(--pm-s2) solid var(--pm-ink); }
+
+/* Type F — Dashed Input
+   Use for: Empty Player Slot, Add Connection, File Upload Zone */
+.pm-card-f {
+  border: var(--pm-s2) dashed var(--pm-border);
+  background: var(--pm-white);
+  transition: border-color 150ms ease;
+}
+.pm-card-f:hover,
+.pm-card-f:focus-within {
+  border-color: var(--pm-ink);
+}
+
+/* Glass inset — optional decorative inner border for Type A primary cards */
+.pm-glass-inset { position: relative; }
+.pm-glass-inset::after {
+  content: '';
+  position: absolute;
+  inset: var(--pm-inner-inset);
+  border: 1px solid var(--pm-ink);
+  opacity: 0.07;
+  pointer-events: none;
+}

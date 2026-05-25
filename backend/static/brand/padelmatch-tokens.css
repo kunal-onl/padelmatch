@@ -1,0 +1,12 @@
+:root {
+  --lime: #C9E52F;
+  --blue: #1A56FF;
+  --purple: #6E28D9;
+  --ink: #111118;
+  --cream: #F5F2E8;
+  --white: #FFFFFF;
+  --error: #FF4136;
+  --font-display: 'Unbounded', 'Arial Black', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}

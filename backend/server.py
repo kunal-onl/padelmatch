@@ -883,6 +883,100 @@ async def reseed():
     return {"ok": True}
 
 
+# --------------------------- BRAND ASSETS ---------------------------
+# Serves the canonical asset files shipped in
+# /app/backend/static/brand/ (padelmatch-*.svg, *.png, tokens.css,
+# tokens.json). DO NOT render brand marks on the server — only serve
+# the official files provided by the brand kit zip.
+
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from fastapi.responses import FileResponse   # noqa: E402
+
+_BRAND_DIR = ROOT_DIR / "static" / "brand"
+
+
+def _brand_url(filename: str) -> str:
+    return f"/api/brand/files/{filename}"
+
+
+# A friendly index of the canonical assets.
+_BRAND_INDEX = {
+    "marks": {
+        "cream":   "padelmatch-mark-cream.svg",
+        "ink":     "padelmatch-mark-ink.svg",
+        "white":   "padelmatch-mark-white.svg",
+    },
+    "letter_variants": {
+        "P_cream": "padelmatch-P-cream.svg",
+        "P_ink":   "padelmatch-P-ink.svg",
+        "M_cream": "padelmatch-M-cream.svg",
+        "M_ink":   "padelmatch-M-ink.svg",
+    },
+    "animated": {
+        "pulse_cream": "padelmatch-pulse-cream.svg",
+        "pulse_ink":   "padelmatch-pulse-ink.svg",
+    },
+    "app_icons": {
+        "cream": "padelmatch-appicon-cream.svg",
+        "ink":   "padelmatch-appicon-ink.svg",
+        "lime":  "padelmatch-appicon-lime.svg",
+    },
+    "avatars": {
+        "cream": "padelmatch-avatar-cream (1).svg",
+        "ink":   "padelmatch-avatar-ink-512.png",
+    },
+    "favicons": {
+        "16": "padelmatch-favicon-16.png",
+        "32": "padelmatch-favicon-32.png",
+        "48": "padelmatch-favicon-48.png",
+        "svg": "padelmatch-favicon-48.svg",
+        "apple_touch_180": "padelmatch-appletouch-180.png",
+    },
+    "og_images": {
+        "cream_1200x630": "padelmatch-og-cream-1200x630 (1).png",
+        "ink_1200x630":   "padelmatch-og-ink-1200x630.png",
+    },
+    "tokens": {
+        "css":  "padelmatch-tokens.css",
+        "json": "padelmatch-tokens.json",
+    },
+}
+
+
+@api.get("/brand")
+async def brand_index():
+    """Inventory of the canonical brand assets (real files, not generated)."""
+    def expand(d):
+        if isinstance(d, dict):
+            return {k: expand(v) for k, v in d.items()}
+        return {"filename": d, "url": _brand_url(d)}
+    return {
+        "assets": expand(_BRAND_INDEX),
+        "all_files_index": _brand_url(""),
+        "notes": [
+            "All assets are the canonical files shipped in the official PadelMatch brand kit zip.",
+            "Serve via /api/brand/files/<filename> — no server-side rendering.",
+            "Tokens: see /api/brand/files/padelmatch-tokens.json for the source-of-truth palette.",
+        ],
+    }
+
+
+@api.get("/brand/raw-tokens")
+async def brand_raw_tokens():
+    """Convenience: returns the parsed tokens.json."""
+    path = _BRAND_DIR / "padelmatch-tokens.json"
+    return FileResponse(path, media_type="application/json")
+
+
+# Mount the static directory under /api/brand/files/<filename>.
+# This serves SVGs, PNGs, CSS, and JSON straight from disk.
+app.mount(
+    "/api/brand/files",
+    StaticFiles(directory=str(_BRAND_DIR), html=False),
+    name="brand-files",
+)
+
+
 # --------------------------- APP ---------------------------
 
 app.include_router(api)

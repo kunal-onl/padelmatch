@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PadelMatch · Logo Lab v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --lime:   #C9E52F;
+    --blue:   #1A56FF;
+    --purple: #6E28D9;
+    --ink:    #111118;
+    --cream:  #F5F2E8;
+    --white:  #FFFFFF;
+    --grey:   #888888;
+    --border: #DDDAD0;
+    --ub:   'Unbounded', 'Arial Black', sans-serif;
+    --sans: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--cream);
+    font-family: var(--sans);
+    color: var(--ink);
+    padding: 0 0 80px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .top {
+    background: var(--ink);
+    padding: 28px 32px 22px;
+    border-bottom: 4px solid var(--lime);
+    position: relative;
+    overflow: hidden;
+  }
+  .top::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 29px, rgba(201,229,47,0.05) 30px),
+      repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(201,229,47,0.05) 60px);
+    pointer-events: none;
+  }
+  .top > * { position: relative; }
+  .eyebrow { font-family: var(--mono); font-size: 9px; color: var(--lime); letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 10px; }
+  .title    { font-family: var(--ub); font-size: 32px; font-weight: 900; color: var(--white); letter-spacing: -0.03em; line-height: 1; margin-bottom: 6px; }
+  .subtitle { font-family: var(--ub); font-size: 14px; font-weight: 400; color: var(--purple); letter-spacing: -0.01em; }
+  .meta     { font-family: var(--sans); font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 10px; }
+
+  /* ── Section header ── */
+  .section-label { display: flex; align-items: center; border: 2px solid var(--ink); margin: 32px 32px 16px; background: var(--ink); }
+  .section-label .num { background: var(--lime); width: 44px; align-self: stretch; display: flex; align-items: center; justify-content: center; font-family: var(--ub); font-size: 11px; font-weight: 900; color: var(--ink); }
+  .section-label .name { padding: 10px 14px; font-family: var(--ub); font-size: 11px; font-weight: 700; color: var(--white); letter-spacing: -0.02em; }
+  .section-label.blue .num   { background: var(--blue); color: var(--white); }
+  .section-label.purple .num { background: var(--purple); color: var(--white); }
+
+  .section-body { padding: 0 32px; }
+  .card { border: 2px solid var(--ink); background: var(--white); margin-bottom: 16px; overflow: hidden; }
+  .card-head { background: var(--ink); padding: 7px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .card-head .ttl { font-family: var(--ub); font-size: 9px; font-weight: 700; color: var(--lime); letter-spacing: 0.1em; }
+  .card-head .sub { font-family: var(--mono); font-size: 8px; color: rgba(255,255,255,0.4); letter-spacing: 0.06em; }
+  .notes { font-family: var(--sans); font-size: 13px; color: var(--grey); line-height: 1.65; margin: 8px 32px 0; max-width: 720px; }
+  .notes b { color: var(--ink); font-weight: 600; }
+
+  /* ── Logo SVG sizing ── */
+  .logo { display: block; }
+  .logo.xl  { width: 560px; max-width: 100%; }
+  .logo.lg  { width: 480px; max-width: 100%; }
+  .logo.md  { width: 220px; }
+  .logo.sm  { width: 120px; }
+  .logo.xs  { width: 60px; }
+
+  /* ── Hero / scale row ── */
+  .hero {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--cream); padding: 48px;
+    border-bottom: 1px solid var(--border);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 43px, rgba(17,17,24,0.06) 44px),
+      repeating-linear-gradient(90deg, transparent, transparent 87px, rgba(17,17,24,0.06) 88px);
+  }
+  .hero-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0; border-bottom: 1px solid var(--border); }
+  .hero-row .h-tile { padding: 32px 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; border-right: 1px solid var(--border); }
+  .hero-row .h-tile:last-child { border-right: none; }
+  .hero-row .h-tile.dark { background: var(--ink); }
+  .hero-row .h-tile.cream { background: var(--cream); }
+  .hero-row .h-tile.white { background: var(--white); }
+  .hero-row .h-tile.lime  { background: var(--lime); }
+  .h-tile .scale-tag { font-family: var(--mono); font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--grey); }
+  .h-tile.dark .scale-tag { color: rgba(255,255,255,0.4); }
+  .h-tile.lime .scale-tag { color: rgba(17,17,24,0.55); }
+
+  /* ── Variation grid ── */
+  .var-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0; }
+  .var-tile { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 28px 20px 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; background: var(--white); }
+  .var-tile.cream-bg { background: var(--cream); }
+  .var-tile.ink-bg { background: var(--ink); }
+  .var-tile.ink-bg .v-label { color: var(--lime); }
+  .var-tile.ink-bg .v-sub   { color: rgba(255,255,255,0.4); }
+  .var-tile .v-label { font-family: var(--ub); font-size: 10px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; text-align: center; }
+  .var-tile .v-sub { font-family: var(--mono); font-size: 8px; color: var(--grey); letter-spacing: 0.1em; text-transform: uppercase; text-align: center; margin-top: -8px; }
+
+  /* ── Letter showcase ── */
+  .letter-stage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+  }
+  .letter-tile {
+    padding: 56px 28px;
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    border-right: 1px solid var(--border);
+  }
+  .letter-tile:last-child { border-right: none; }
+  .letter-tile.ink { background: var(--ink); }
+  .letter-tile .letter-tag {
+    font-family: var(--ub); font-size: 10px; font-weight: 700;
+    letter-spacing: 0.15em; color: var(--ink);
+  }
+  .letter-tile.ink .letter-tag { color: var(--lime); }
+  .letter-tile .letter-note {
+    font-family: var(--mono); font-size: 9px; color: var(--grey);
+    letter-spacing: 0.08em; text-transform: uppercase; text-align: center;
+    max-width: 240px; line-height: 1.6;
+  }
+  .letter-tile.ink .letter-note { color: rgba(255,255,255,0.45); }
+
+  /* ── Animated showcase ── */
+  .anim-stage { background: var(--ink); padding: 56px 24px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .anim-stage::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(201,229,47,0.08) 1.5px, transparent 1.5px);
+    background-size: 14px 14px;
+  }
+  .anim-stage > * { position: relative; }
+  .anim-cream { background: var(--cream); padding: 56px 24px; display: flex; align-items: center; justify-content: center; border-top: 1px solid var(--border); gap: 56px; flex-wrap: wrap; }
+  .anim-controls { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--white); flex-wrap: wrap; }
+  .anim-controls button { border: 2px solid var(--ink); background: var(--white); font-family: var(--ub); font-size: 9px; font-weight: 700; color: var(--ink); letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer; text-transform: uppercase; }
+  .anim-controls button.active { background: var(--lime); }
+  .anim-controls .frame-label { margin-left: auto; font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ── Footer ── */
+  .signoff { margin: 32px 32px 0; padding: 18px 22px; border: 2px solid var(--ink); background: var(--white); display: flex; gap: 14px; align-items: flex-start; }
+  .signoff .tag { background: var(--lime); padding: 4px 8px; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--ink); letter-spacing: 0.1em; flex-shrink: 0; }
+  .signoff .txt { font-family: var(--sans); font-size: 12px; color: var(--ink); line-height: 1.6; }
+  .signoff .txt b { font-weight: 600; }
+  .signoff .txt + .txt { margin-top: 6px; }
+
+  /* ── Cell/segment fade transitions ── */
+  .cell, .seg { transition: fill 220ms ease-out; }
+  .letter-shape { transition: opacity 220ms ease-out; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="eyebrow">padelmatch.in · logo lab v2</div>
+  <div class="title">LOGO EXPLORATION</div>
+  <div class="subtitle">Court grid + line-colored letterforms · v0.2</div>
+  <div class="meta">v5 feedback: letter rects now inflate ~0.4u in every direction to cover the court path's anti-aliased edges along cell-hole boundaries — no more hairline dark borders inside the P bowl or along the M stems</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     01 · BASE MARK
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">01</div>
+  <div class="name">BASE MARK — STARTING POINT</div>
+</div>
+<div class="notes">
+  Original SVG redrawn so cells and line-segments can each be colored independently. Cell rects are slightly oversized to bleed under the ink path — <b>no more white/black fringe between fill and stroke</b>. Default static = diagonal match (TL lime, BR blue).
+</div>
+<div class="section-body">
+  <div class="card">
+    <div class="card-head">
+      <span class="ttl">DEFAULT STATIC · GAP FIX APPLIED</span>
+      <span class="sub">tl lime + br blue</span>
+    </div>
+    <div class="hero">
+      <svg id="hero-mark" class="logo lg" viewBox="5 23 90 56" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="hero-row">
+      <div class="h-tile white">
+        <svg class="logo sm preset-default" viewBox="5 23 90 56"></svg>
+        <span class="scale-tag">120px · WHITE</span>
+      </div>
+      <div class="h-tile cream">
+        <svg class="logo sm preset-default" viewBox="5 23 90 56"></svg>
+        <span class="scale-tag">120px · CREAM</span>
+      </div>
+      <div class="h-tile dark">
+        <svg class="logo sm preset-default" viewBox="5 23 90 56" data-on-ink="true"></svg>
+        <span class="scale-tag">120px · INK</span>
+      </div>
+      <div class="h-tile white">
+        <svg class="logo xs preset-default" viewBox="5 23 90 56"></svg>
+        <span class="scale-tag">60px · SMALL</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     02 · STATIC CELL FILL VARIATIONS
+═══════════════════════════════════════════ -->
+<div class="section-label blue">
+  <div class="num">02</div>
+  <div class="name">STATIC FILL VARIATIONS</div>
+</div>
+<div class="notes">
+  Four cell-fill compositions. These don't try to be letters — they're rhythm / status / matching states. Use these when you want the mark to feel <b>about</b> matching without spelling anything.
+</div>
+<div class="section-body">
+  <div class="card">
+    <div class="card-head">
+      <span class="ttl">CELL FILL EXPLORATIONS</span>
+      <span class="sub">4 variants · pick &amp; remix</span>
+    </div>
+    <div class="var-grid" id="var-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     03 · LINE-COLORED LETTERS
+═══════════════════════════════════════════ -->
+<div class="section-label purple">
+  <div class="num">03</div>
+  <div class="name">LINE-COLORED LETTERS — P &amp; M</div>
+</div>
+<div class="notes">
+  The key idea from your sketch: <b>color the ink lines themselves</b>. The L cell + its right gutter + the top kitchen + the mid vertical gutter + the mid horizontal gutter form the strokes of a P. The same vocabulary, with both side strips lit and a partial drop in the middle, forms an M. All right angles, all from the existing court grammar. Letters are stylized (M's middle is a straight drop, not a V) — matches the orthogonal aesthetic. <b>v3:</b> the stroke now reaches all the way to the outer border at top and bottom — no more black bar between the letter and the frame, and no more cream hairline showing through the kitchen-line slit at small scale.
+</div>
+<div class="section-body">
+  <div class="card">
+    <div class="card-head">
+      <span class="ttl">LETTER-P (LIME) · LETTER-M (BLUE)</span>
+      <span class="sub">strokes drawn from the court itself</span>
+    </div>
+    <div class="letter-stage">
+      <div class="letter-tile">
+        <svg class="logo lg" id="letter-p-cream" viewBox="5 23 90 56"></svg>
+        <div class="letter-tag">P · LIME · ON CREAM</div>
+        <div class="letter-note">Stem: L cell + L-TL gutter. Bowl: top kitchen + mid vertical + mid horizontal. The TL cell is the hollow of the bowl.</div>
+      </div>
+      <div class="letter-tile">
+        <svg class="logo lg" id="letter-m-cream" viewBox="5 23 90 56"></svg>
+        <div class="letter-tag">M · BLUE · ON CREAM</div>
+        <div class="letter-note">Stems: L &amp; R cells. Top: full kitchen connector. Middle dip: V-MID top, dropping halfway. Stylized as a straight-drop M, not a V.</div>
+      </div>
+    </div>
+    <div class="letter-stage">
+      <div class="letter-tile ink">
+        <svg class="logo lg" id="letter-p-ink" viewBox="5 23 90 56" data-on-ink="true"></svg>
+        <div class="letter-tag">P · LIME · ON INK</div>
+        <div class="letter-note">Darker context — pair with rating reveals, hero panels.</div>
+      </div>
+      <div class="letter-tile ink">
+        <svg class="logo lg" id="letter-m-ink" viewBox="5 23 90 56" data-on-ink="true"></svg>
+        <div class="letter-tag">M · BLUE · ON INK</div>
+        <div class="letter-note">Sibling to P. Same vocabulary, mirrored emphasis.</div>
+      </div>
+    </div>
+    <!-- Small scale check -->
+    <div class="hero-row">
+      <div class="h-tile cream">
+        <svg class="logo sm" id="letter-p-sm" viewBox="5 23 90 56"></svg>
+        <span class="scale-tag">P · 120px</span>
+      </div>
+      <div class="h-tile dark">
+        <svg class="logo sm" id="letter-m-sm-ink" viewBox="5 23 90 56" data-on-ink="true"></svg>
+        <span class="scale-tag">M · 120px · ink</span>
+      </div>
+      <div class="h-tile white">
+        <svg class="logo xs" id="letter-p-xs" viewBox="5 23 90 56"></svg>
+        <span class="scale-tag">P · 60px</span>
+      </div>
+      <div class="h-tile lime">
+        <svg class="logo xs" id="letter-m-xs-lime" viewBox="5 23 90 56" data-on-lime="true"></svg>
+        <span class="scale-tag">M · 60px · lime</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     04 · ANIMATED — ALGORITHM PULSE w/ P/M flicker
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">04</div>
+  <div class="name">ANIMATED — ALGORITHM PULSE w/ P·M FLICKER</div>
+</div>
+<div class="notes">
+  The static mark rests in a cell-fill state. The animation cycles through matching states and twice per loop briefly resolves into the P-letter and M-letter shapes — your "wink" idea. ~5s loop, controls below.
+</div>
+<div class="section-body">
+  <div class="card">
+    <div class="card-head">
+      <span class="ttl">ALGORITHM PULSE LOOP</span>
+      <span class="sub">cells + line-letter frames</span>
+    </div>
+    <div class="anim-stage">
+      <svg id="pulse-mark-ink" class="logo lg" viewBox="5 23 90 56" data-on-ink="true"></svg>
+    </div>
+    <div class="anim-cream">
+      <svg id="pulse-mark-cream" class="logo md" viewBox="5 23 90 56"></svg>
+      <svg id="pulse-mark-cream-2" class="logo sm" viewBox="5 23 90 56"></svg>
+    </div>
+    <div class="anim-controls">
+      <button id="pulse-play" class="active">PAUSE</button>
+      <button id="pulse-step">STEP →</button>
+      <button id="pulse-reset">RESET</button>
+      <span class="frame-label">FRAME <span id="pulse-frame">0</span> · <span id="pulse-name">DIAGONAL MATCH</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     05 · PIXEL COURT — LOADING SCATTER
+═══════════════════════════════════════════ -->
+<div class="section-label blue">
+  <div class="num">05</div>
+  <div class="name">PIXEL COURT — LOADING / MATCHING STATE</div>
+</div>
+<div class="notes">
+  Sub-divided cells become a pixel canvas. No letters — pure scatter that pulses through matching/loading rhythms. Use for splash screens, "finding your match" states, rating reveal backgrounds. All right angles, all on-grid.
+</div>
+<div class="section-body">
+  <div class="card">
+    <div class="card-head">
+      <span class="ttl">PIXEL SCATTER LOOP</span>
+      <span class="sub">subdivided court · loading state</span>
+    </div>
+    <div class="anim-stage">
+      <svg id="pixel-mark-ink" class="logo lg" viewBox="5 23 90 56" data-on-ink="true"></svg>
+    </div>
+    <div class="anim-cream">
+      <svg id="pixel-mark-cream" class="logo md" viewBox="5 23 90 56"></svg>
+      <svg id="pixel-mark-cream-2" class="logo sm" viewBox="5 23 90 56"></svg>
+    </div>
+    <div class="anim-controls">
+      <button id="pixel-play" class="active">PAUSE</button>
+      <button id="pixel-step">STEP →</button>
+      <button id="pixel-reset">RESET</button>
+      <span class="frame-label">PHASE: <span id="pixel-name">SCATTER</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- Sign-off -->
+<div class="signoff">
+  <span class="tag">NEXT</span>
+  <div>
+    <div class="txt"><b>What to look for:</b> Do the P and M now read as letters? At 120px? At 60px? Does the lime-P + blue-M pairing feel right, or should they share a color? Does the pulse animation linger long enough on the letter frames?</div>
+    <div class="txt"><b>If this direction sticks:</b> next moves would be (a) a wordmark exploration — "PADELMATCH" sitting under or beside the mark, (b) lockups with the rating number, (c) deciding which static composition is the default identity vs. which are reserved for animation moments.</div>
+  </div>
+</div>
+
+<script>
+  // ═══════════════════════════════════════════
+  //  PADELMATCH LOGO — RENDER ENGINE
+  // ═══════════════════════════════════════════
+  const C = {
+    lime:   '#C9E52F',
+    blue:   '#1A56FF',
+    purple: '#6E28D9',
+    ink:    '#111118',
+    cream:  '#F5F2E8',
+    white:  '#FFFFFF',
+    border: '#DDDAD0',
+  };
+
+  // ── Cell geometry (interior rectangles) ──────────
+  // Slightly different precision than v1 — these match the actual path coords.
+  const CELLS = {
+    L:  { x: 12.371, y: 36.597, w:  9.555, h: 26.797 },
+    TL: { x: 26.094, y: 36.601, w: 21.930, h: 11.316 },
+    TR: { x: 52.192, y: 36.601, w: 21.930, h: 11.316 },
+    BL: { x: 26.094, y: 52.081, w: 21.930, h: 11.309 },
+    BR: { x: 52.192, y: 52.081, w: 21.930, h: 11.309 },
+    R:  { x: 78.290, y: 36.593, w:  9.555, h: 26.797 },
+  };
+
+  // Inflate cells so fill bleeds under the ink path — kills the fringe.
+  const CELL_BLEED = 0.35;
+
+  // ── Line segments (overlay on top of court path) ─
+  // The court's ink lines, named so we can color them.
+  // Coordinates align precisely with the path geometry.
+  const SEGS = {
+    // Outer rounded frame edges (thick perimeter strokes)
+    // Align with the court path: path's outer extent is y=26.156 → y=73.848,
+    // x=8.207 → x=92.000. Previously OUTER_BOT was at y=74.756 which sat
+    // OUTSIDE the path, drawing a phantom bar below the frame separated
+    // by a ~1u gap. Now snapped to the real bottom edge.
+    OUTER_TOP:   { x:  8.207, y: 26.156, w: 83.793, h:  2.084 },
+    OUTER_BOT:   { x:  8.207, y: 71.764, w: 83.793, h:  2.084 },
+    OUTER_LEFT:  { x:  8.207, y: 26.156, w:  2.084, h: 47.692 },
+    OUTER_RIGHT: { x: 89.916, y: 26.156, w:  2.084, h: 47.692 },
+
+    // Top "kitchen line" (strip directly above cells)
+    KT_L:   { x: 12.371, y: 34.515, w:  9.555, h: 2.082 },
+    KT_GLT: { x: 21.926, y: 34.515, w:  4.168, h: 2.082 },
+    KT_TL:  { x: 26.094, y: 34.515, w: 21.930, h: 2.082 },
+    KT_GM:  { x: 48.024, y: 34.515, w:  4.168, h: 2.082 },
+    KT_TR:  { x: 52.192, y: 34.515, w: 21.930, h: 2.082 },
+    KT_GTR: { x: 74.122, y: 34.515, w:  4.168, h: 2.082 },
+    KT_R:   { x: 78.290, y: 34.515, w:  9.555, h: 2.082 },
+
+    // Bottom "kitchen line"
+    KB_L:   { x: 12.371, y: 63.394, w:  9.555, h: 2.082 },
+    KB_GBL: { x: 21.926, y: 63.394, w:  4.168, h: 2.082 },
+    KB_BL:  { x: 26.094, y: 63.394, w: 21.930, h: 2.082 },
+    KB_GM:  { x: 48.024, y: 63.394, w:  4.168, h: 2.082 },
+    KB_BR:  { x: 52.192, y: 63.394, w: 21.930, h: 2.082 },
+    KB_GBR: { x: 74.122, y: 63.394, w:  4.168, h: 2.082 },
+    KB_R:   { x: 78.290, y: 63.394, w:  9.555, h: 2.082 },
+
+    // Vertical inner gutters (4.168 wide)
+    // Each split into TOP / MID-CROSS / BOT so we can light partial heights
+    VL_T: { x: 21.926, y: 36.597, w: 4.168, h: 11.320 },
+    VL_M: { x: 21.926, y: 47.917, w: 4.168, h:  4.164 },
+    VL_B: { x: 21.926, y: 52.081, w: 4.168, h: 11.313 },
+
+    VM_T: { x: 48.024, y: 36.597, w: 4.168, h: 11.320 },
+    VM_M: { x: 48.024, y: 47.917, w: 4.168, h:  4.164 },
+    VM_B: { x: 48.024, y: 52.081, w: 4.168, h: 11.313 },
+
+    VR_T: { x: 74.122, y: 36.597, w: 4.168, h: 11.320 },
+    VR_M: { x: 74.122, y: 47.917, w: 4.168, h:  4.164 },
+    VR_B: { x: 74.122, y: 52.081, w: 4.168, h: 11.313 },
+
+    // Horizontal middle gutter (split by V_MID column)
+    HM_L: { x: 26.094, y: 47.917, w: 21.930, h: 4.164 },
+    HM_R: { x: 52.192, y: 47.917, w: 21.930, h: 4.164 },
+
+    // ── Outer margin segments ────────────────────────
+    // These cover the band BETWEEN the outer border and the kitchen line.
+    // The court path has a thin background-showing "slit" in this region
+    // that produces the visible kitchen line; that slit also produces
+    // faint grey hairlines at small sizes when the P/M letters are active.
+    // KMT_*/KMB_* default to TRANSPARENT so the base mark reads naturally;
+    // letter recipes fill them to extend the stroke flush with the frame.
+    KMT_L:   { x: 12.371, y: 28.240, w:  9.555, h: 6.275 },
+    KMT_GLT: { x: 21.926, y: 28.240, w:  4.168, h: 6.275 },
+    KMT_TL:  { x: 26.094, y: 28.240, w: 21.930, h: 6.275 },
+    KMT_GM:  { x: 48.024, y: 28.240, w:  4.168, h: 6.275 },
+    KMT_TR:  { x: 52.192, y: 28.240, w: 21.930, h: 6.275 },
+    KMT_GTR: { x: 74.122, y: 28.240, w:  4.168, h: 6.275 },
+    KMT_R:   { x: 78.290, y: 28.240, w:  9.555, h: 6.275 },
+
+    KMB_L:   { x: 12.371, y: 65.476, w:  9.555, h: 6.288 },
+    KMB_GBL: { x: 21.926, y: 65.476, w:  4.168, h: 6.288 },
+    KMB_BL:  { x: 26.094, y: 65.476, w: 21.930, h: 6.288 },
+    KMB_GM:  { x: 48.024, y: 65.476, w:  4.168, h: 6.288 },
+    KMB_BR:  { x: 52.192, y: 65.476, w: 21.930, h: 6.288 },
+    KMB_GBR: { x: 74.122, y: 65.476, w:  4.168, h: 6.288 },
+    KMB_R:   { x: 78.290, y: 65.476, w:  9.555, h: 6.288 },
+  };
+
+  // Segments whose default fill is TRANSPARENT rather than the outline
+  // color — they exist only to be lit up by a recipe.
+  function segDefaultColor(name, outlineColor) {
+    if (name.startsWith('KMT_') || name.startsWith('KMB_')) return 'transparent';
+    return outlineColor;
+  }
+
+  // Tiny inflation on segments to avoid sub-pixel ink-fringe
+  const SEG_BLEED = 0.15;
+
+  // ── Letter shapes ────────────────────────────────
+  // P/M used to be assembled from many cell + segment rects layered on top
+  // of the court path. Every join between rects produced a sub-pixel notch
+  // along the letter edge (different bleeds + AA on the underlying path).
+  // v4: each letter is now a small set of LARGE, OVERLAPPING rectangles
+  // drawn on a dedicated layer above the court. No internal seams.
+  //
+  // Coordinate anchors (from the path):
+  //   Outer frame inner edges: x = 10.289 / 89.711  ·  y = 28.240 / 71.764
+  //   L cell:                  x = 12.371 → 21.926  (w 9.555)
+  //   L→TL gutter:             x = 21.926 → 26.094  (w 4.168)
+  //   TL cell:                 x = 26.094 → 48.024  (w 21.930), y 36.601 → 47.917
+  //   V_MID gutter:            x = 48.024 → 52.192  (w 4.168)
+  //   TR cell:                 x = 52.192 → 74.122  (w 21.930)
+  //   TR→R gutter:             x = 74.122 → 78.290  (w 4.168)
+  //   R cell:                  x = 78.290 → 87.845  (w 9.555)
+  //   Top kitchen line:        y = 34.515 → 36.597
+  //   Mid H gutter:            y = 47.917 → 52.081
+  //   Bot kitchen line:        y = 63.394 → 65.476
+  //
+  // Letters extend flush from the inside of the outer top border (y=28.240)
+  // to the inside of the outer bottom border (y=71.764).
+
+  const LETTER_TOP    = 28.240;
+  const LETTER_BOTTOM = 71.764;
+  const LETTER_H      = LETTER_BOTTOM - LETTER_TOP; // 43.524
+  // Outward bleed on every letter rect, in SVG units. Covers the court
+  // path's anti-aliased edge along cell-hole boundaries. ~0.4u is large
+  // enough to mask AA at all preview zoom levels but small enough that
+  // the trimmed cell-hole edges still look on-grid.
+  const LETTER_BLEED  = 0.4;
+
+  // P — stem on left, bowl outlined around TL cell hollow.
+  const P_RECTS = [
+    // Stem (L cell + L→TL gutter, full height)
+    { x: 12.371, y: LETTER_TOP, w: 13.723, h: LETTER_H },
+    // Bowl-top (across TL cell + V_MID, from top down to top of TL cell)
+    { x: 21.926, y: LETTER_TOP, w: 30.266, h: 36.601 - LETTER_TOP }, // overlaps stem on left
+    // Bowl-right (V_MID column, from TL-cell top down through mid gutter)
+    { x: 48.024, y: LETTER_TOP, w: 4.168,  h: 52.081 - LETTER_TOP },
+    // Bowl-bottom (mid H gutter from stem to V_MID right edge)
+    { x: 21.926, y: 47.917,     w: 30.266, h: 52.081 - 47.917 },
+  ];
+
+  // M — two stems + top connector + middle drop.
+  const M_RECTS = [
+    // Left stem (L cell + L→TL gutter)
+    { x: 12.371, y: LETTER_TOP, w: 13.723, h: LETTER_H },
+    // Right stem (TR→R gutter + R cell)
+    { x: 74.122, y: LETTER_TOP, w: 13.723, h: LETTER_H },
+    // Top connector (full width between the two stems, flush with frame)
+    { x: 12.371, y: LETTER_TOP, w: 75.474, h: 36.601 - LETTER_TOP },
+    // Middle drop (V_MID column, from top down to top of mid H gutter)
+    { x: 48.024, y: LETTER_TOP, w: 4.168,  h: 47.917 - LETTER_TOP },
+  ];
+
+  // ── Court outline path ───────────────────────────
+  const COURT_PATH = "m89.922 26.156h-79.633c-1.1523 0-2.082 0.93359-2.082 2.082v6.2617 0.011719 0.011719 30.945 0.011719 0.011719 6.2734c0 1.1484 0.92969 2.082 2.082 2.082h79.637c1.1523 0 2.082-0.93359 2.082-2.082v-43.527c0-1.1484-0.92969-2.082-2.082-2.082zm-77.551 37.238v-26.797h9.5547v26.797zm13.723-26.793h21.93v11.316h-21.93zm26.098 0h21.93v11.316h-21.93zm-26.098 15.48h21.93v11.309h-21.93zm26.098 11.309v-11.309h21.93v11.309zm26.098-26.797h9.5547v26.797h-9.5547zm9.5547-4.168h-35.652v-2.1055h35.652zm-39.82-2.1055v2.1055l-35.652 0.003907v-2.1055h35.648zm-35.652 37.238h11.613s0.015625 0.003906 0.023437 0.003906h24.012v2.1133h-35.648zm39.816 2.1172v-2.1133h24.016s0.015625-0.003906 0.023437-0.003906h11.613v2.1172z";
+
+  // ── Render the mark into an SVG element ─────────
+  // cellFills: { L: '#...', TL: '#...', ... }   (missing = neutral)
+  // segFills:  { OUTER_TOP: '#...', KT_TL: '#...' ... }  (missing = ink)
+  function renderMark(svgEl, cellFills = {}, segFills = {}, showLetter = null) {
+    const onInk  = svgEl.dataset.onInk === 'true';
+    const onLime = svgEl.dataset.onLime === 'true';
+    const outlineColor = onInk ? C.white : C.ink;
+    // v4: dim cells render fully transparent so no faint grey rectangles
+    // are visible when zoomed out. The court PATH defines the structure;
+    // cells only paint when explicitly filled.
+    const cellDim = 'transparent';
+    // Segments default to the outline color (so they're invisible against the path)
+    // — except margin segments, which default to transparent.
+    const segDim = outlineColor;
+
+    let html = '';
+
+    // 1. Cell fills (behind everything) — slightly inflated to kill the fringe.
+    for (const [name, c] of Object.entries(CELLS)) {
+      const fill = cellFills[name] || cellDim;
+      html += `<rect class="cell" data-cell="${name}" x="${c.x - CELL_BLEED}" y="${c.y - CELL_BLEED}" width="${c.w + CELL_BLEED*2}" height="${c.h + CELL_BLEED*2}" fill="${fill}"/>`;
+    }
+
+    // 2. Court outline path
+    html += `<path class="court" d="${COURT_PATH}" fill="${outlineColor}" fill-rule="evenodd"/>`;
+
+    // 3. Segment overlays (on top of path — recolor specific line strokes)
+    //    Render all so we can swap fills on animation without re-render.
+    for (const [name, s] of Object.entries(SEGS)) {
+      const fill = segFills[name] || segDefaultColor(name, segDim);
+      html += `<rect class="seg" data-seg="${name}" x="${s.x - SEG_BLEED}" y="${s.y - SEG_BLEED}" width="${s.w + SEG_BLEED*2}" height="${s.h + SEG_BLEED*2}" fill="${fill}"/>`;
+    }
+
+    // 4. Letter shapes — always present, opacity 0 unless shown. Drawn as
+    //    big overlapping rects on top of everything for clean edges.
+    //    Each rect is inflated by LETTER_BLEED in every direction to cover
+    //    the court PATH's anti-aliased edge along cell-hole boundaries.
+    //    Without this, a hairline of half-strength ink shows where the
+    //    rect ends exactly on a path interior edge.
+    const b = LETTER_BLEED;
+    html += `<g class="letter-shape" data-letter="P" opacity="${showLetter === 'P' ? 1 : 0}">`;
+    for (const r of P_RECTS) {
+      html += `<rect x="${r.x - b}" y="${r.y - b}" width="${r.w + b*2}" height="${r.h + b*2}" fill="${C.lime}"/>`;
+    }
+    html += `</g>`;
+    html += `<g class="letter-shape" data-letter="M" opacity="${showLetter === 'M' ? 1 : 0}">`;
+    for (const r of M_RECTS) {
+      html += `<rect x="${r.x - b}" y="${r.y - b}" width="${r.w + b*2}" height="${r.h + b*2}" fill="${C.blue}"/>`;
+    }
+    html += `</g>`;
+
+    svgEl.innerHTML = html;
+  }
+
+  // ── Update fills without re-rendering ───────────
+  function setMark(svgEl, cellFills = {}, segFills = {}, showLetter = null) {
+    const cellDim = 'transparent';
+    const segDim  = (svgEl.dataset.onInk === 'true') ? C.white : C.ink;
+
+    for (const name of Object.keys(CELLS)) {
+      const r = svgEl.querySelector(`[data-cell="${name}"]`);
+      if (r) r.setAttribute('fill', cellFills[name] || cellDim);
+    }
+    for (const name of Object.keys(SEGS)) {
+      const r = svgEl.querySelector(`[data-seg="${name}"]`);
+      if (r) r.setAttribute('fill', segFills[name] || segDefaultColor(name, segDim));
+    }
+    const pG = svgEl.querySelector('[data-letter="P"]');
+    const mG = svgEl.querySelector('[data-letter="M"]');
+    if (pG) pG.setAttribute('opacity', showLetter === 'P' ? 1 : 0);
+    if (mG) mG.setAttribute('opacity', showLetter === 'M' ? 1 : 0);
+  }
+
+  // ═══════════════════════════════════════════
+  //  LETTER RECIPES — v4
+  //  P and M are drawn as overlapping solid rectangles on a dedicated
+  //  letter-shape layer (see P_RECTS / M_RECTS). renderMark + setMark
+  //  toggle them via the `showLetter` arg. Cells and segments stay clean.
+  // ═══════════════════════════════════════════
+
+  const P = { cells: {}, segs: {}, letter: 'P' };
+  const M = { cells: {}, segs: {}, letter: 'M' };
+
+  // ═══════════════════════════════════════════
+  //  01 · BASE MARK
+  // ═══════════════════════════════════════════
+  const DEFAULT = { cells: { TL: C.lime, BR: C.blue }, segs: {} };
+
+  renderMark(document.getElementById('hero-mark'), DEFAULT.cells, DEFAULT.segs);
+  document.querySelectorAll('.preset-default').forEach(svg => {
+    renderMark(svg, DEFAULT.cells, DEFAULT.segs);
+  });
+
+  // ═══════════════════════════════════════════
+  //  02 · STATIC CELL-FILL VARIATIONS
+  // ═══════════════════════════════════════════
+  const VARIATIONS = [
+    {
+      label: 'A · DIAGONAL MATCH',
+      sub:   'tl·lime  br·blue',
+      bg: 'white',
+      cells: { TL: C.lime, BR: C.blue },
+    },
+    {
+      label: 'B · VOLLEY',
+      sub:   'top·lime  bot·blue',
+      bg: 'cream',
+      cells: { TL: C.lime, TR: C.lime, BL: C.blue, BR: C.blue },
+    },
+    {
+      label: 'C · SIDES',
+      sub:   'L·lime  R·blue',
+      bg: 'white',
+      cells: { L: C.lime, R: C.blue },
+    },
+    {
+      label: 'D · ACTIVE PLAYERS',
+      sub:   'four corners alternating',
+      bg: 'cream',
+      cells: { L: C.lime, TR: C.blue, BL: C.blue, R: C.lime },
+    },
+  ];
+
+  const grid = document.getElementById('var-grid');
+  VARIATIONS.forEach(v => {
+    const tile = document.createElement('div');
+    tile.className = 'var-tile ' + (v.bg === 'cream' ? 'cream-bg' : '');
+    tile.innerHTML = `
+      <svg class="logo md" viewBox="5 23 90 56"></svg>
+      <div class="v-label">${v.label}</div>
+      <div class="v-sub">${v.sub}</div>
+    `;
+    grid.appendChild(tile);
+    renderMark(tile.querySelector('svg'), v.cells, v.segs || {});
+  });
+
+  // ═══════════════════════════════════════════
+  //  03 · LINE-COLORED LETTERS
+  // ═══════════════════════════════════════════
+
+  renderMark(document.getElementById('letter-p-cream'),  P.cells, P.segs, P.letter);
+  renderMark(document.getElementById('letter-m-cream'),  M.cells, M.segs, M.letter);
+  renderMark(document.getElementById('letter-p-ink'),    P.cells, P.segs, P.letter);
+  renderMark(document.getElementById('letter-m-ink'),    M.cells, M.segs, M.letter);
+
+  renderMark(document.getElementById('letter-p-sm'),     P.cells, P.segs, P.letter);
+  renderMark(document.getElementById('letter-m-sm-ink'), M.cells, M.segs, M.letter);
+  renderMark(document.getElementById('letter-p-xs'),     P.cells, P.segs, P.letter);
+  // M on lime background — render with blue letter
+  renderMark(document.getElementById('letter-m-xs-lime'), M.cells, M.segs, M.letter);
+
+  // ═══════════════════════════════════════════
+  //  04 · ANIMATED — ALGORITHM PULSE
+  // ═══════════════════════════════════════════
+  const PULSE_FRAMES = [
+    { name: 'DIAGONAL MATCH', cells: { TL: C.lime, BR: C.blue }, segs: {}, letter: null, ms: 600 },
+    { name: 'SWAP',           cells: { TR: C.lime, BL: C.blue }, segs: {}, letter: null, ms: 480 },
+    { name: 'BUILDING',       cells: { L: C.lime, TL: C.lime, BR: C.blue, R: C.blue }, segs: {}, letter: null, ms: 400 },
+    { name: 'P-LETTER',       cells: P.cells, segs: P.segs,    letter: 'P', ms: 900 },
+    { name: 'TRANSITION',     cells: { L: C.lime, R: C.blue }, segs: { KT_L: C.lime, KT_R: C.blue }, letter: null, ms: 320 },
+    { name: 'M-LETTER',       cells: M.cells, segs: M.segs,    letter: 'M', ms: 900 },
+    { name: 'FULL PULSE',     cells: { TL: C.lime, TR: C.blue, BL: C.blue, BR: C.lime }, segs: {}, letter: null, ms: 280 },
+    { name: 'RESET',          cells: { TL: C.lime, BR: C.blue }, segs: {}, letter: null, ms: 700 },
+  ];
+
+  const pulseMarks = [
+    document.getElementById('pulse-mark-ink'),
+    document.getElementById('pulse-mark-cream'),
+    document.getElementById('pulse-mark-cream-2'),
+  ];
+  pulseMarks.forEach(svg => renderMark(svg, PULSE_FRAMES[0].cells, PULSE_FRAMES[0].segs, PULSE_FRAMES[0].letter));
+
+  let pulseIdx = 0;
+  let pulsePlaying = true;
+  let pulseTimer = null;
+
+  function applyPulseFrame(i) {
+    pulseIdx = ((i % PULSE_FRAMES.length) + PULSE_FRAMES.length) % PULSE_FRAMES.length;
+    const f = PULSE_FRAMES[pulseIdx];
+    pulseMarks.forEach(svg => setMark(svg, f.cells, f.segs, f.letter));
+    document.getElementById('pulse-frame').textContent = pulseIdx;
+    document.getElementById('pulse-name').textContent  = f.name;
+  }
+  function pulseTick() {
+    applyPulseFrame(pulseIdx + 1);
+    if (pulsePlaying) pulseTimer = setTimeout(pulseTick, PULSE_FRAMES[pulseIdx].ms);
+  }
+  document.getElementById('pulse-play').addEventListener('click', e => {
+    pulsePlaying = !pulsePlaying;
+    e.target.classList.toggle('active', pulsePlaying);
+    e.target.textContent = pulsePlaying ? 'PAUSE' : 'PLAY';
+    if (pulsePlaying) pulseTick();
+    else clearTimeout(pulseTimer);
+  });
+  document.getElementById('pulse-step').addEventListener('click', () => {
+    pulsePlaying = false;
+    document.getElementById('pulse-play').classList.remove('active');
+    document.getElementById('pulse-play').textContent = 'PLAY';
+    clearTimeout(pulseTimer);
+    applyPulseFrame(pulseIdx + 1);
+  });
+  document.getElementById('pulse-reset').addEventListener('click', () => {
+    applyPulseFrame(0);
+  });
+  pulseTimer = setTimeout(pulseTick, PULSE_FRAMES[0].ms);
+
+  // ═══════════════════════════════════════════
+  //  05 · PIXEL COURT — LOADING SCATTER
+  //  No letters — pure matching/loading rhythm
+  // ═══════════════════════════════════════════
+  // 10 cols × 6 rows of pixels mapped onto the 6-cell court
+  //   col 0   = L strip
+  //   col 1-4 = TL (rows 0-2) / BL (rows 3-5)
+  //   col 5-8 = TR (rows 0-2) / BR (rows 3-5)
+  //   col 9   = R strip
+  const PIXEL_W = 10;
+  const PIXEL_H = 6;
+
+  function pixelRect(col, row) {
+    let parent, subCol, subRow, subCols, subRows;
+    if (col === 0)      { parent = CELLS.L;  subCol = 0;       subRow = row;       subCols = 1; subRows = 6; }
+    else if (col === 9) { parent = CELLS.R;  subCol = 0;       subRow = row;       subCols = 1; subRows = 6; }
+    else if (col <= 4) {
+      if (row < 3) { parent = CELLS.TL; subRow = row; }
+      else         { parent = CELLS.BL; subRow = row - 3; }
+      subCol = col - 1; subCols = 4; subRows = 3;
+    } else {
+      if (row < 3) { parent = CELLS.TR; subRow = row; }
+      else         { parent = CELLS.BR; subRow = row - 3; }
+      subCol = col - 5; subCols = 4; subRows = 3;
+    }
+    const w = parent.w / subCols;
+    const h = parent.h / subRows;
+    return { x: parent.x + subCol * w, y: parent.y + subRow * h, w, h };
+  }
+
+  function renderPixelCourt(svgEl) {
+    const onInk = svgEl.dataset.onInk === 'true';
+    const outlineColor = onInk ? C.white : C.ink;
+    const dim = onInk ? 'rgba(255,255,255,0.05)' : '#EBE7D8';
+
+    let html = '';
+    // Background cell shading
+    for (const [name, c] of Object.entries(CELLS)) {
+      html += `<rect x="${c.x - CELL_BLEED}" y="${c.y - CELL_BLEED}" width="${c.w + CELL_BLEED*2}" height="${c.h + CELL_BLEED*2}" fill="${dim}"/>`;
+    }
+    // Pixel rects (initially transparent)
+    const inset = 0.5;
+    for (let r = 0; r < PIXEL_H; r++) {
+      for (let col = 0; col < PIXEL_W; col++) {
+        const p = pixelRect(col, r);
+        html += `<rect class="pix" data-pix="${col}-${r}" x="${p.x + inset}" y="${p.y + inset}" width="${Math.max(0, p.w - inset*2)}" height="${Math.max(0, p.h - inset*2)}" fill="transparent" style="transition: fill 220ms ease-out;"/>`;
+      }
+    }
+    // Court outline on top
+    html += `<path d="${COURT_PATH}" fill="${outlineColor}" fill-rule="evenodd"/>`;
+    svgEl.innerHTML = html;
+  }
+
+  // Generate a pseudo-random scatter with given density (0-1), using a seed for reproducibility
+  function makeScatter(density, seed) {
+    const arr = [];
+    let s = seed * 9301 + 49297;
+    for (let r = 0; r < PIXEL_H; r++) {
+      const row = [];
+      for (let c = 0; c < PIXEL_W; c++) {
+        s = (s * 9301 + 49297) % 233280;
+        const rnd = s / 233280;
+        row.push(rnd < density ? 1 : 0);
+      }
+      arr.push(row);
+    }
+    return arr;
+  }
+
+  function setScatter(svgEl, scatterA, colorA, scatterB, colorB) {
+    for (let r = 0; r < PIXEL_H; r++) {
+      for (let col = 0; col < PIXEL_W; col++) {
+        const pix = svgEl.querySelector(`[data-pix="${col}-${r}"]`);
+        if (!pix) continue;
+        if (scatterA && scatterA[r][col]) pix.setAttribute('fill', colorA);
+        else if (scatterB && scatterB[r][col]) pix.setAttribute('fill', colorB);
+        else pix.setAttribute('fill', 'transparent');
+      }
+    }
+  }
+
+  // Set a column to a color (vertical sweep effect)
+  function setColumn(svgEl, col, color) {
+    for (let r = 0; r < PIXEL_H; r++) {
+      const pix = svgEl.querySelector(`[data-pix="${col}-${r}"]`);
+      if (pix) pix.setAttribute('fill', color);
+    }
+  }
+  function clearAll(svgEl) {
+    svgEl.querySelectorAll('.pix').forEach(p => p.setAttribute('fill', 'transparent'));
+  }
+
+  const pixelMarks = [
+    document.getElementById('pixel-mark-ink'),
+    document.getElementById('pixel-mark-cream'),
+    document.getElementById('pixel-mark-cream-2'),
+  ];
+  pixelMarks.forEach(renderPixelCourt);
+
+  // Pre-compute scatter patterns
+  const SCATTER_A = makeScatter(0.25, 7);
+  const SCATTER_B = makeScatter(0.30, 13);
+  const SCATTER_C = makeScatter(0.18, 23);
+  const SCATTER_DENSE = makeScatter(0.55, 41);
+
+  // Phases: no letters, just rhythm
+  const PIXEL_PHASES = [
+    { name: 'SCATTER A',  ms: 700, apply: svg => setScatter(svg, SCATTER_A, C.lime, SCATTER_B, C.blue) },
+    { name: 'SCATTER B',  ms: 700, apply: svg => setScatter(svg, SCATTER_B, C.lime, SCATTER_A, C.blue) },
+    { name: 'SWEEP L→R',  ms: 900, apply: svg => {
+        clearAll(svg);
+        // Show only odd columns lime, even blue, like a scanner
+        for (let c = 0; c < PIXEL_W; c++) setColumn(svg, c, c % 2 === 0 ? C.lime : C.blue);
+      } },
+    { name: 'SCATTER C',  ms: 600, apply: svg => setScatter(svg, SCATTER_C, C.blue, SCATTER_A, C.lime) },
+    { name: 'CONVERGE',   ms: 800, apply: svg => setScatter(svg, SCATTER_DENSE, C.lime, null, null) },
+    { name: 'MATCH',      ms: 900, apply: svg => {
+        // A "matched" final state — two diagonal blocks
+        clearAll(svg);
+        // top-left & bottom-right quadrants filled
+        for (let r = 0; r < 3; r++) for (let c = 1; c < 5; c++) {
+          svg.querySelector(`[data-pix="${c}-${r}"]`).setAttribute('fill', C.lime);
+        }
+        for (let r = 3; r < 6; r++) for (let c = 5; c < 9; c++) {
+          svg.querySelector(`[data-pix="${c}-${r}"]`).setAttribute('fill', C.blue);
+        }
+        // sides
+        for (let r = 0; r < 6; r++) {
+          svg.querySelector(`[data-pix="0-${r}"]`).setAttribute('fill', C.lime);
+          svg.querySelector(`[data-pix="9-${r}"]`).setAttribute('fill', C.blue);
+        }
+      } },
+    { name: 'DISSOLVE',   ms: 500, apply: svg => setScatter(svg, SCATTER_A, C.lime, null, null) },
+  ];
+
+  let pixelIdx = 0;
+  let pixelPlaying = true;
+  let pixelTimer = null;
+
+  function applyPixelPhase(i) {
+    pixelIdx = ((i % PIXEL_PHASES.length) + PIXEL_PHASES.length) % PIXEL_PHASES.length;
+    const p = PIXEL_PHASES[pixelIdx];
+    pixelMarks.forEach(p.apply);
+    document.getElementById('pixel-name').textContent = p.name;
+  }
+  function pixelTick() {
+    applyPixelPhase(pixelIdx + 1);
+    if (pixelPlaying) pixelTimer = setTimeout(pixelTick, PIXEL_PHASES[pixelIdx].ms);
+  }
+  applyPixelPhase(0);
+  document.getElementById('pixel-play').addEventListener('click', e => {
+    pixelPlaying = !pixelPlaying;
+    e.target.classList.toggle('active', pixelPlaying);
+    e.target.textContent = pixelPlaying ? 'PAUSE' : 'PLAY';
+    if (pixelPlaying) pixelTick();
+    else clearTimeout(pixelTimer);
+  });
+  document.getElementById('pixel-step').addEventListener('click', () => {
+    pixelPlaying = false;
+    document.getElementById('pixel-play').classList.remove('active');
+    document.getElementById('pixel-play').textContent = 'PLAY';
+    clearTimeout(pixelTimer);
+    applyPixelPhase(pixelIdx + 1);
+  });
+  document.getElementById('pixel-reset').addEventListener('click', () => {
+    applyPixelPhase(0);
+  });
+  pixelTimer = setTimeout(pixelTick, PIXEL_PHASES[0].ms);
+</script>
+
+</body>
+</html>

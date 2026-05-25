@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PadelMatch · Brand Book v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --lime:   #C9E52F;
+    --blue:   #1A56FF;
+    --purple: #6E28D9;
+    --ink:    #111118;
+    --cream:  #F5F2E8;
+    --white:  #FFFFFF;
+    --grey:   #888888;
+    --border: #DDDAD0;
+    --error:  #FF4136;
+    --ub:   'Unbounded', 'Arial Black', sans-serif;
+    --sans: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--cream); font-family: var(--sans); color: var(--ink); padding: 0 0 140px; min-height: 100vh; }
+
+  /* ── Cover ── */
+  .cover {
+    background: var(--ink); padding: 64px 36px 56px;
+    border-bottom: 4px solid var(--lime);
+    position: relative; overflow: hidden;
+  }
+  .cover::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 29px, rgba(201,229,47,0.05) 30px),
+      repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(201,229,47,0.05) 60px);
+    pointer-events: none;
+  }
+  .cover > * { position: relative; }
+  .cover-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--lime); letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 16px; }
+  .cover-lockup  { margin: 22px 0 32px; min-height: 180px; }
+  .cover-meta    { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.15em; margin-top: 24px; }
+  .cover-meta b  { color: var(--lime); font-weight: 500; }
+  .cover-stats   { display: flex; gap: 32px; margin-top: 28px; flex-wrap: wrap; }
+  .cover-stat    { display: flex; flex-direction: column; gap: 4px; }
+  .cover-stat .v { font-family: var(--ub); font-size: 22px; font-weight: 900; color: var(--white); letter-spacing: -0.03em; line-height: 1; }
+  .cover-stat .k { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.4); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  /* ── Section header ── */
+  .section-label { display: flex; align-items: center; border: 2px solid var(--ink); margin: 40px 32px 18px; background: var(--ink); }
+  .section-label .num  { background: var(--lime); width: 50px; align-self: stretch; display: flex; align-items: center; justify-content: center; font-family: var(--ub); font-size: 13px; font-weight: 900; color: var(--ink); }
+  .section-label .name { padding: 12px 18px; font-family: var(--ub); font-size: 12px; font-weight: 700; color: var(--white); letter-spacing: -0.02em; flex: 1; }
+  .section-label .count { padding: 12px 16px; font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; }
+  .section-label.blue .num   { background: var(--blue); color: var(--white); }
+  .section-label.purple .num { background: var(--purple); color: var(--white); }
+
+  .notes { font-family: var(--sans); font-size: 13px; color: var(--grey); line-height: 1.65; margin: 8px 32px 18px; max-width: 760px; }
+  .notes b { color: var(--ink); font-weight: 600; }
+
+  /* ── Cards ── */
+  .card { border: 2px solid var(--ink); background: var(--white); overflow: hidden; }
+  .card .head { background: var(--ink); padding: 9px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .card .head .ttl { font-family: var(--ub); font-size: 10px; font-weight: 700; color: var(--lime); letter-spacing: 0.06em; }
+  .card .head .sub { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.45); letter-spacing: 0.08em; }
+  .card .head.purple { background: var(--purple); }
+  .card .head.purple .ttl { color: var(--white); }
+  .card .head.blue { background: var(--blue); }
+  .card .head.blue .ttl { color: var(--white); }
+
+  .preview { padding: 40px 24px; display: flex; align-items: center; justify-content: center; min-height: 200px; background: var(--cream); }
+  .preview.bg-white { background: var(--white); }
+  .preview.bg-ink   { background: var(--ink); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.04) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(255,255,255,0.04) 64px); }
+  .preview.bg-lime  { background: var(--lime); }
+  .preview.bg-cream-grid { background: var(--cream); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(17,17,24,0.06) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(17,17,24,0.06) 64px); }
+
+  .meta-row { display: flex; justify-content: space-between; padding: 8px 14px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 0.08em; text-transform: uppercase; }
+  .actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border-top: 1px solid var(--border); background: #FAFAF6; }
+  .actions button { flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--ink); background: var(--white); font-family: var(--ub); font-size: 8.5px; font-weight: 700; color: var(--ink); letter-spacing: 0.05em; padding: 7px 6px; cursor: pointer; text-transform: uppercase; transition: all 0.12s; }
+  .actions button:hover { background: var(--ink); color: var(--lime); }
+  .actions button.primary { background: var(--ink); color: var(--lime); }
+  .actions button.primary:hover { background: var(--lime); color: var(--ink); border-color: var(--lime); }
+  .actions button.flash { background: var(--lime); color: var(--ink); border-color: var(--lime); }
+
+  /* ── Grids ── */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; padding: 0 32px; }
+  .grid-2-wide { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 0 32px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; padding: 0 32px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; padding: 0 32px; }
+  .row-x  { display: flex; gap: 14px; padding: 0 32px; overflow-x: auto; }
+
+  /* ── Wordmark display tiles ── */
+  .wm-tile { border: 2px solid var(--ink); background: var(--white); overflow: hidden; }
+  .wm-tile .wm-stage { padding: 48px 28px; display: flex; align-items: center; justify-content: center; background: var(--cream); min-height: 160px; }
+  .wm-tile.ink .wm-stage { background: var(--ink); }
+  .wm-tile .wm-meta { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); }
+  .wm-tile .wm-meta .lbl { font-family: var(--ub); font-size: 9px; font-weight: 700; color: var(--ink); letter-spacing: 0.05em; }
+  .wm-tile .wm-meta .tag { font-family: var(--mono); font-size: 8px; color: var(--grey); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .recommend-badge {
+    display: inline-block;
+    background: var(--lime);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 3px 7px;
+    text-transform: uppercase;
+  }
+
+  /* ── Palette ── */
+  .palette { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding: 0 32px; }
+  .swatch { border: 2px solid var(--ink); overflow: hidden; cursor: pointer; transition: transform 0.15s; }
+  .swatch:hover { transform: translateY(-2px); }
+  .swatch .chip { height: 100px; }
+  .swatch .info { padding: 12px 14px 14px; background: var(--white); }
+  .swatch .info .name { font-family: var(--ub); font-size: 12px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .swatch .info .hex  { font-family: var(--mono); font-size: 11px; color: var(--grey); margin-top: 4px; letter-spacing: 0.08em; }
+  .swatch .info .role { font-family: var(--mono); font-size: 8px; color: var(--grey); margin-top: 6px; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1.5; }
+
+  /* ── Typography section ── */
+  .type-card { border: 2px solid var(--ink); margin: 0 32px 14px; overflow: hidden; background: var(--white); }
+  .type-card .th { background: var(--ink); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .type-card .th .name { font-family: var(--ub); font-size: 11px; font-weight: 700; color: var(--white); }
+  .type-card .th .role { font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 0.08em; }
+  .type-card .demo { padding: 24px 24px 20px; background: var(--cream); border-bottom: 1px solid var(--border); }
+  .type-card .demo.white { background: var(--white); }
+  .type-card .weights { padding: 14px 16px; }
+  .type-card .weights .row { font-family: var(--sans); font-size: 12px; color: var(--ink); padding: 3px 0; line-height: 1.55; }
+
+  /* ── Icon tiles ── */
+  .icon-tile { border: 2px solid var(--ink); background: var(--white); overflow: hidden; }
+  .icon-tile .stage { display: flex; align-items: center; justify-content: center; padding: 28px 20px; background: var(--cream); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(17,17,24,0.05) 24px),
+      repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(17,17,24,0.05) 48px);
+    min-height: 240px; }
+  .icon-tile .stage.dark { background: var(--ink); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(255,255,255,0.03) 24px),
+      repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(255,255,255,0.03) 48px); }
+  .icon-tile .stage > svg, .icon-tile .stage > div { display: block; max-width: 200px; max-height: 200px; }
+
+  /* ── OG card preview (16:9-ish) ── */
+  .og-tile { border: 2px solid var(--ink); background: var(--white); overflow: hidden; }
+  .og-tile .stage { padding: 16px; background: var(--cream); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(17,17,24,0.05) 24px),
+      repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(17,17,24,0.05) 48px);
+    display: flex; align-items: center; justify-content: center; }
+  .og-tile .stage > div { box-shadow: 0 6px 24px rgba(0,0,0,0.08); transform-origin: center; }
+
+  /* ── Animated stage ── */
+  .anim-stage { padding: 48px 24px; display: flex; align-items: center; justify-content: center; gap: 56px; flex-wrap: wrap; }
+  .anim-stage.ink { background: var(--ink); background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.04) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(255,255,255,0.04) 64px); }
+
+  /* ── Big "Download Everything" tile ── */
+  .bulk { margin: 16px 32px; border: 3px solid var(--ink); background: var(--lime); padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; }
+  .bulk .ttl { font-family: var(--ub); font-size: 18px; font-weight: 900; color: var(--ink); letter-spacing: -0.03em; }
+  .bulk .sub { font-family: var(--sans); font-size: 13px; color: var(--ink); line-height: 1.55; max-width: 600px; }
+  .bulk .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .bulk button { border: 2px solid var(--ink); background: var(--ink); font-family: var(--ub); font-size: 10px; font-weight: 700; color: var(--lime); letter-spacing: 0.06em; padding: 12px 18px; cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
+  .bulk button:hover { background: var(--white); color: var(--ink); }
+
+  /* ── Specs (usage) ── */
+  .specs { padding: 0 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .spec-card { border: 2px solid var(--ink); background: var(--white); overflow: hidden; }
+  .spec-card .th { background: var(--ink); padding: 8px 14px; font-family: var(--ub); font-size: 9px; font-weight: 700; color: var(--lime); letter-spacing: 0.08em; }
+  .spec-card .body { padding: 16px; }
+  .spec-card .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--border); font-family: var(--mono); font-size: 10px; }
+  .spec-card .row:last-child { border-bottom: none; }
+  .spec-card .row .k { color: var(--grey); letter-spacing: 0.06em; text-transform: uppercase; font-size: 8.5px; }
+  .spec-card .row .v { color: var(--ink); font-weight: 500; }
+  .spec-card .donts { padding: 4px 0; font-family: var(--sans); font-size: 12px; line-height: 1.6; color: var(--ink); }
+
+  /* ── Footer signoff ── */
+  .signoff { margin: 36px 32px 0; padding: 20px 24px; border: 2px solid var(--ink); background: var(--white); display: flex; gap: 16px; align-items: flex-start; }
+  .signoff .tag { background: var(--lime); padding: 4px 10px; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--ink); letter-spacing: 0.1em; flex-shrink: 0; }
+  .signoff .txt { font-family: var(--sans); font-size: 12px; color: var(--ink); line-height: 1.65; }
+  .signoff .txt + .txt { margin-top: 8px; }
+  .signoff b { font-weight: 600; }
+
+  /* ── Toast ── */
+  .pm-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--ink); color: var(--lime); padding: 10px 18px;
+    font-family: var(--ub); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    border: 2px solid var(--lime); pointer-events: none; opacity: 0; transition: all 0.25s; z-index: 1000;
+    text-transform: uppercase;
+  }
+  .pm-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* small inline */
+  .pill { display: inline-block; padding: 3px 8px; background: var(--ink); color: var(--lime); font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .pill.lime { background: var(--lime); color: var(--ink); }
+  .pill.blue { background: var(--blue); color: var(--white); }
+  .pill.purple { background: var(--purple); color: var(--white); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     COVER
+═══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-eyebrow">padelmatch.in · brand book · v1.0 · sport brutalism</div>
+  <div class="cover-lockup" id="cover-lockup"></div>
+  <div class="cover-meta">UPDATED <b>24 MAY 2026</b> · GEOMETRY V5 · ENGINE V1</div>
+  <div class="cover-stats">
+    <div class="cover-stat"><span class="v">3</span><span class="k">Typefaces</span></div>
+    <div class="cover-stat"><span class="v">7</span><span class="k">Colors</span></div>
+    <div class="cover-stat"><span class="v">6</span><span class="k">Container types</span></div>
+    <div class="cover-stat"><span class="v">5</span><span class="k">Court textures</span></div>
+    <div class="cover-stat"><span class="v">∞</span><span class="k">Exports</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     01 · LOGO MARK
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">01</div>
+  <div class="name">LOGO MARK</div>
+  <div class="count">DEFAULT · LETTER VARIANTS · ANIMATED</div>
+</div>
+<div class="notes">
+  The PadelMatch mark is a top-down padel court rendered as a 6-cell glass-panel grid. Default identity: <b>TL·lime + BR·blue diagonal</b> — two players matched across the net. The mark also resolves into <b>P</b> and <b>M</b> letterforms drawn from the same court grammar.
+</div>
+<div class="grid-3" id="grid-mark"></div>
+
+<!-- ═══════════════════════════════════════════
+     02 · WORDMARK — CASE
+═══════════════════════════════════════════ -->
+<div class="section-label purple">
+  <div class="num">02</div>
+  <div class="name">WORDMARK — CASE STUDY</div>
+  <div class="count">4 OPTIONS · PADEL·INK / MATCH·LIME</div>
+</div>
+<div class="notes">
+  Four ways to set the brand name. All share the chosen color split: <b>PADEL in ink, MATCH in lime</b>. Unbounded display, weight 900, tracking −0.04em. Pick your favorite and lock it in.
+</div>
+<div class="grid-2" id="grid-wm-case"></div>
+
+<!-- ═══════════════════════════════════════════
+     03 · WORDMARK — PADEL COLOR VARIANT
+═══════════════════════════════════════════ -->
+<div class="section-label purple">
+  <div class="num">03</div>
+  <div class="name">WORDMARK — PADEL COLOR VARIANT</div>
+  <div class="count">INK vs BLUE · MATCH ALWAYS LIME</div>
+</div>
+<div class="notes">
+  Two color treatments for the recommended <b>pm-split</b> wordmark. <b>PADEL · ink</b> is the conservative default — high contrast, works everywhere. <b>PADEL · blue</b> brings the brand blue into the wordmark for a more saturated, energetic identity. MATCH stays lime in both — it's the active half of the "match".
+</div>
+<div class="grid-2" id="grid-wm-color"></div>
+
+<!-- ═══════════════════════════════════════════
+     04 · WORDMARK — WEIGHT
+═══════════════════════════════════════════ -->
+<div class="section-label purple">
+  <div class="num">04</div>
+  <div class="name">WORDMARK — WEIGHT EXPLORATION</div>
+  <div class="count">700 · 900 · MIX</div>
+</div>
+<div class="notes">
+  Three weights of Unbounded applied to the recommended case. <b>900</b> is most assertive — recommended for primary use. <b>700</b> is the elegant alternative for editorial / print. <b>Mix</b> heavies the whole word block but leaves room to experiment.
+</div>
+<div class="grid-3" id="grid-wm-weight"></div>
+
+<!-- ═══════════════════════════════════════════
+     05 · WORDMARK — SPECIAL TREATMENTS
+═══════════════════════════════════════════ -->
+<div class="section-label purple">
+  <div class="num">05</div>
+  <div class="name">WORDMARK — SPECIAL TREATMENTS</div>
+  <div class="count">CLEAN · MINI-MARKS · COURT UNDERLINE</div>
+</div>
+<div class="notes">
+  Three flavors to compare. <b>Clean</b> is the safe everyday form. <b>Mini-marks</b> replaces the literal P and M glyphs with miniature versions of the letter-marks — the most distinctive but only legible at hero scale. <b>Court-grid underline</b> binds the wordmark to the visual system with a single horizontal stroke.
+</div>
+<div class="grid-3" id="grid-wm-special"></div>
+
+<!-- ═══════════════════════════════════════════
+     06 · LOCKUPS
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">06</div>
+  <div class="name">LOCKUPS</div>
+  <div class="count">HORIZONTAL · STACKED · MARK · WORDMARK · TAGLINE</div>
+</div>
+<div class="notes">
+  The official lockup family. <b>Horizontal</b> is the default — use in app bars, headers, footers. <b>Stacked</b> for square placements (avatars, app store screenshots). <b>Mark only</b> at small sizes (favicon, navigation). <b>Wordmark only</b> in body copy or text-heavy contexts. <b>Tagline lockup</b> for marketing and brand moments.
+</div>
+<div class="grid-2-wide" id="grid-lockups"></div>
+
+<!-- ═══════════════════════════════════════════
+     07 · ICON VARIANTS
+═══════════════════════════════════════════ -->
+<div class="section-label blue">
+  <div class="num">07</div>
+  <div class="name">ICON VARIANTS</div>
+  <div class="count">FAVICON · APP · TOUCH · OG · AVATAR</div>
+</div>
+<div class="notes">
+  Production-ready icons at the standard platform sizes. All built around the same mark geometry — change one source, all icons update.
+</div>
+<div class="grid-3" id="grid-icons"></div>
+<div style="height:16px;"></div>
+<div id="og-section" class="grid-2" style="padding:0 32px;"></div>
+
+<!-- ═══════════════════════════════════════════
+     08 · COLOR PALETTE
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">08</div>
+  <div class="name">COLOR PALETTE</div>
+  <div class="count">7 TOKENS · CLICK TO COPY HEX</div>
+</div>
+<div class="notes">
+  The full Sport Brutalism palette. <b>Lime + blue</b> are the active match pair. <b>Purple</b> is the social/profile accent. <b>Ink + cream</b> are the foundational neutrals. <b>Error</b> is reserved for genuine error states — never decorative.
+</div>
+<div class="palette" id="palette"></div>
+
+<!-- ═══════════════════════════════════════════
+     09 · TYPOGRAPHY
+═══════════════════════════════════════════ -->
+<div class="section-label purple">
+  <div class="num">09</div>
+  <div class="name">TYPOGRAPHY</div>
+  <div class="count">3 TYPEFACES · GOOGLE FONTS</div>
+</div>
+<div class="notes">
+  Three typefaces, each with a specific job. Never substitute Inter, Roboto, or system stacks — they erase the scoreboard character.
+</div>
+<div id="typography"></div>
+
+<!-- ═══════════════════════════════════════════
+     10 · ANIMATED MARK
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">10</div>
+  <div class="name">ANIMATED MARK — ALGORITHM PULSE</div>
+  <div class="count">SMIL · ~5s LOOP · NATIVE SVG</div>
+</div>
+<div class="notes">
+  Self-contained animated SVG using SMIL — no JS needed at runtime. Drops into any modern browser via <code style="background:var(--ink);color:var(--lime);padding:2px 6px;font-family:var(--mono);font-size:11px;">&lt;img src="padelmatch-pulse.svg"&gt;</code>. Use for "finding your match" loaders, web hero panels, email signatures, video stingers.
+</div>
+<div class="card" style="margin:0 32px;">
+  <div class="head">
+    <span class="ttl">ALGORITHM PULSE LOOP</span>
+    <span class="sub">8 frames · 4580ms · cells + letter morph</span>
+  </div>
+  <div class="anim-stage ink" id="anim-ink"></div>
+  <div class="anim-stage" id="anim-cream"></div>
+  <div class="actions" style="padding:10px 12px;">
+    <button class="primary" id="dl-anim-ink">↓ DOWNLOAD ANIMATED · ON INK</button>
+    <button class="primary" id="dl-anim-cream">↓ DOWNLOAD ANIMATED · ON CREAM</button>
+    <button id="copy-anim-embed">COPY EMBED CODE</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     11 · DOWNLOAD EVERYTHING
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">11</div>
+  <div class="name">DOWNLOAD CENTER</div>
+  <div class="count">BULK · SVG · PNG · TYPE · MOTION</div>
+</div>
+<div class="notes">
+  Grab the entire kit at once, or jump back up to any section for one-off downloads.
+</div>
+<div class="bulk">
+  <div class="ttl">ENTIRE BRAND KIT</div>
+  <div class="sub">All marks · all wordmarks · all lockups · all icons · animated SVG · color tokens · type imports. Drops as individual files into your downloads folder.</div>
+  <div class="btn-row">
+    <button id="dl-all-svg">↓ ALL · SVG</button>
+    <button id="dl-all-png">↓ ALL · PNG @256/512/1024</button>
+    <button id="dl-all-icons">↓ ALL · ICONS (PNG)</button>
+    <button id="dl-tokens">↓ DESIGN TOKENS (.json + .css)</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     12 · USAGE NOTES
+═══════════════════════════════════════════ -->
+<div class="section-label">
+  <div class="num">12</div>
+  <div class="name">USAGE NOTES</div>
+  <div class="count">SIZING · CLEARSPACE · DON'TS</div>
+</div>
+<div class="specs">
+
+  <div class="spec-card">
+    <div class="th">DIMENSIONS</div>
+    <div class="body">
+      <div class="row"><span class="k">MARK VIEWBOX</span><span class="v">5 23 90 56</span></div>
+      <div class="row"><span class="k">MARK ASPECT</span><span class="v">90 : 56 (≈1.61)</span></div>
+      <div class="row"><span class="k">LOCKUP H · MIN</span><span class="v">96 × 30 px</span></div>
+      <div class="row"><span class="k">MARK ONLY · MIN</span><span class="v">48 × 30 px</span></div>
+      <div class="row"><span class="k">CLEARSPACE</span><span class="v">≥ ½ mark height</span></div>
+    </div>
+  </div>
+
+  <div class="spec-card">
+    <div class="th">FORMATS SHIPPED</div>
+    <div class="body">
+      <div class="row"><span class="k">SVG · STATIC</span><span class="v">UI · WEB · PRINT</span></div>
+      <div class="row"><span class="k">SVG · ANIMATED</span><span class="v">SMIL · NATIVE</span></div>
+      <div class="row"><span class="k">PNG @256/512/1024</span><span class="v">SOCIAL · APP · RETINA</span></div>
+      <div class="row"><span class="k">ICO · FAVICON</span><span class="v">16/32/48</span></div>
+      <div class="row"><span class="k">OG · 1200×630</span><span class="v">LINK PREVIEWS</span></div>
+    </div>
+  </div>
+
+  <div class="spec-card">
+    <div class="th">DON'T</div>
+    <div class="body">
+      <div class="donts">→ Don't change cell-fill colors outside the palette</div>
+      <div class="donts">→ Don't rotate, skew, or stretch the mark</div>
+      <div class="donts">→ Don't apply strokes / outlines / glows</div>
+      <div class="donts">→ Don't separate PADEL and MATCH with anything other than a space or middle-dot</div>
+      <div class="donts">→ Don't use Inter, Roboto, or system fonts to set the wordmark</div>
+      <div class="donts">→ Don't drop shadows on the mark</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="signoff">
+  <span class="tag">CREDITS</span>
+  <div>
+    <div class="txt"><b>System:</b> Sport Brutalism v1.0 · Brand Book v1.0 · Logo geometry v5</div>
+    <div class="txt"><b>Typefaces:</b> Unbounded · DM Sans · DM Mono (all Google Fonts, SIL Open Font License)</div>
+    <div class="txt"><b>Built:</b> Single-page, fully exportable. No build step. All assets generated at runtime from a shared geometry and color spec — change one constant, every asset updates.</div>
+  </div>
+</div>
+
+<script src="brand-engine.js"></script>
+<script src="brand-wordmark.js"></script>
+<script src="brand-render.js"></script>
+</body>
+</html>

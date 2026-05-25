@@ -21,7 +21,7 @@ const QUESTIONS: Q[] = [
     ],
   },
   {
-    key: "frequency", label: "HOW OFTEN DO YOU PLAY?", accent: C.coral,
+    key: "frequency", label: "HOW OFTEN DO YOU PLAY?", accent: C.purple,
     options: [
       { value: "rarely", label: "RARELY" },
       { value: "monthly", label: "MONTHLY" },

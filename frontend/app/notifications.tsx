@@ -11,7 +11,7 @@ import { formatTimeAgo } from "../lib/utils";
 
 const TYPE_META: Record<string, { bg: string; icon: any; fg: string }> = {
   game_opened: { bg: C.lime, icon: "flash", fg: C.ink },
-  rank_up: { bg: C.coral, icon: "trophy", fg: C.white },
+  rank_up: { bg: C.purple, icon: "trophy", fg: C.white },
   score_request: { bg: C.cream, icon: "tennisball-outline", fg: C.ink },
   rating_update: { bg: C.blue, icon: "arrow-up", fg: C.white },
   new_player: { bg: C.ink, icon: "person-add-outline", fg: C.lime },

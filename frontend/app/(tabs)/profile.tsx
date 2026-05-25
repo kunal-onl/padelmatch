@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   ratingNum: { fontFamily: F.ub900, fontSize: 88, color: C.ink, letterSpacing: -3, lineHeight: 92, marginTop: 6 },
   statusLabel: { fontFamily: F.mono, fontSize: 9, color: C.grey, marginTop: 10, letterSpacing: 1.6 },
   trend: { fontFamily: F.mono, fontSize: 11, marginTop: 4, letterSpacing: 1 },
-  rankBand: { backgroundColor: C.coral, paddingVertical: 12, alignItems: "center", borderBottomWidth: BORDER, borderColor: C.ink },
+  rankBand: { backgroundColor: C.purple, paddingVertical: 12, alignItems: "center", borderBottomWidth: BORDER, borderColor: C.ink },
   rankBandText: { fontFamily: F.ub900, fontSize: 16, color: C.white, letterSpacing: -0.4 },
   statStrip: { flexDirection: "row", backgroundColor: C.ink },
   div: { width: BORDER, backgroundColor: C.ink },

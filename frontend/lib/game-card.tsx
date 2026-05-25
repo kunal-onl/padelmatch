@@ -54,7 +54,7 @@ export function GameCard({
 const styles = StyleSheet.create({
   wrap: { backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink, marginBottom: 12 },
   band: {
-    backgroundColor: C.coral,
+    backgroundColor: C.blue,
     paddingHorizontal: 12, paddingVertical: 8,
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     borderBottomWidth: BORDER, borderBottomColor: C.ink,

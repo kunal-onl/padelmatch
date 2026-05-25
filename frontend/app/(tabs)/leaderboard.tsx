@@ -73,7 +73,7 @@ export default function Leaderboard() {
                 testID={`lb-row-${p.id}`}
                 onPress={() => router.push(`/profile/${p.id}`)}
                 activeOpacity={0.85}
-                style={[styles.row, { backgroundColor: isMe ? C.coral : C.white }]}
+                style={[styles.row, { backgroundColor: isMe ? C.purple : C.white }]}
               >
                 <View style={styles.rankCell}>
                   <Text style={[styles.rankText, { color: isMe ? C.white : C.ink }]}>#{i + 4}</Text>

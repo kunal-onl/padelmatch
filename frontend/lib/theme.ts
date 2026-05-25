@@ -4,8 +4,9 @@ export const C = {
   ink: "#111118",
   ink2: "#3A3A4A",
   lime: "#C9E52F",
-  coral: "#FF4136",
+  coral: "#FF4136",   // canonical: ERRORS / UNAVAILABLE / LOSSES only — never decorative
   blue: "#1A56FF",
+  purple: "#6E28D9",  // canonical: social / profile / community accent
   grey: "#888888",
   border: "#DDDAD0",
   white: "#FFFFFF",

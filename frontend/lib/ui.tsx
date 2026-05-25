@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   ctaArrow: {
     width: 56,
-    backgroundColor: C.coral,
+    backgroundColor: C.ink,
     alignItems: "center",
     justifyContent: "center",
   },

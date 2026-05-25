@@ -134,10 +134,10 @@ export default function Preferences() {
         <View style={styles.stepRow}>
           <TouchableOpacity
             testID="gpw-minus"
-            style={[styles.stepBtn, { backgroundColor: C.coral }]}
+            style={[styles.stepBtn, { backgroundColor: C.ink }]}
             onPress={() => setGpw((n) => Math.max(1, n - 1))}
           >
-            <Text style={styles.stepIcon}>−</Text>
+            <Text style={[styles.stepIcon, { color: C.white }]}>−</Text>
           </TouchableOpacity>
           <View style={styles.stepValueBox}>
             <Text style={styles.stepValue}>{gpw}</Text>

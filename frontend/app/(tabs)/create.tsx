@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   miniBtn: { width: 30, height: 30, backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink, alignItems: "center", justifyContent: "center" },
   miniBtnText: { fontFamily: F.ub900, fontSize: 18, color: C.ink },
   previewCard: { backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink },
-  previewBand: { backgroundColor: C.coral, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: BORDER, borderColor: C.ink },
+  previewBand: { backgroundColor: C.blue, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: BORDER, borderColor: C.ink },
   previewBandText: { fontFamily: F.ub900, fontSize: 13, color: C.white, letterSpacing: -0.3 },
   previewDate: { fontFamily: F.mono, fontSize: 12, color: C.ink },
   previewSkill: { fontFamily: F.ub700, fontSize: 11, color: C.ink, marginTop: 6, letterSpacing: 0.6 },

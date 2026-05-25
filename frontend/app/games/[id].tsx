@@ -134,7 +134,7 @@ export default function GameDetail() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.cream },
   back: { paddingHorizontal: 12, paddingVertical: 8 },
-  venueHeader: { backgroundColor: C.coral, paddingHorizontal: 16, paddingVertical: 18, borderBottomWidth: BORDER, borderBottomColor: C.ink },
+  venueHeader: { backgroundColor: C.blue, paddingHorizontal: 16, paddingVertical: 18, borderBottomWidth: BORDER, borderBottomColor: C.ink },
   venueName: { fontFamily: F.ub900, color: C.white, fontSize: 24, letterSpacing: -1 },
   venueSub: { fontFamily: F.mono, color: C.lime, fontSize: 10, letterSpacing: 1.6, marginTop: 4 },
   statRow: {

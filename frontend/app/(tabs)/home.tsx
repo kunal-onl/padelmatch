@@ -76,7 +76,7 @@ export default function Home() {
         <View style={styles.statStrip}>
           <StatChip bg={C.ink} valueColor={C.lime} value={player.gameRating.toFixed(1)} label="RATING" testID="stat-rating" />
           <View style={styles.statDivider} />
-          <StatChip bg={C.coral} valueColor={C.white} value={player.communityRank ? `#${player.communityRank}` : "—"} label="NORTH GOA" testID="stat-rank" />
+          <StatChip bg={C.purple} valueColor={C.white} value={player.communityRank ? `#${player.communityRank}` : "—"} label="NORTH GOA" testID="stat-rank" />
           <View style={styles.statDivider} />
           <StatChip bg={C.white} value={String(player.matchesPlayed)} label="PLAYED" testID="stat-played" />
           <View style={styles.statDivider} />

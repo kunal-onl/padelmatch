@@ -1263,6 +1263,64 @@ async def dev_seed_community():
     return {"ok": True, "seeded": n}
 
 
+@api.post("/dev/scrub")
+async def dev_scrub():
+    """Wipe ALL test / mock / previous data and leave only the real roster.
+
+    Keeps:
+      • venues (the 8 canonical Hudle venues)
+      • players whose id appears in COMMUNITY_SEED
+    Deletes:
+      • any player not in the community roster (legacy mock players,
+        signed-up test accounts, etc.)
+      • all games, matches and notifications (these were all seed/test
+        fixtures with mock data)
+    Resets stats on the kept community players back to Player defaults so
+    the leaderboard reflects an empty match history, then re-syncs the
+    canonical community profile data.
+    """
+    keep_ids = [s["id"] for s in COMMUNITY_SEED]
+
+    player_del = await db.players.delete_many({"id": {"$nin": keep_ids}})
+    games_del = await db.games.delete_many({})
+    matches_del = await db.matches.delete_many({})
+    notifs_del = await db.notifications.delete_many({})
+
+    # Reset rating / record fields on the kept community players.
+    defaults = Player(id="__defaults__", name="__").model_dump()
+    reset_fields = {
+        "gameRating": defaults["gameRating"],
+        "gameRatingPeak": defaults["gameRatingPeak"],
+        "gameRatingHistory": [],
+        "gameRatingStatus": defaults["gameRatingStatus"],
+        "initialRatingEstimate": defaults["initialRatingEstimate"],
+        "matchesPlayed": 0,
+        "wins": 0,
+        "losses": 0,
+        "communityRank": None,
+        "peerRatings": defaults["peerRatings"],
+        "shotComfort": {},
+    }
+    await db.players.update_many(
+        {"id": {"$in": keep_ids}},
+        {"$set": reset_fields},
+    )
+
+    # Re-sync canonical community profile data on top of the reset.
+    n = await seed_community()
+
+    return {
+        "ok": True,
+        "deleted": {
+            "players": player_del.deleted_count,
+            "games": games_del.deleted_count,
+            "matches": matches_del.deleted_count,
+            "notifications": notifs_del.deleted_count,
+        },
+        "remaining_community": n,
+    }
+
+
 # --------------------------- OTP (PLACEHOLDER) ---------------------------
 # Mock WhatsApp OTP. Accepts any 6-digit code OR the universal demo code
 # 123456. MSG91 integration will plug in here later. The endpoint

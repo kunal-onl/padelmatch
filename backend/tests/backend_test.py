@@ -9,7 +9,7 @@ import requests
 
 BASE_URL = os.environ.get(
     "EXPO_PUBLIC_BACKEND_URL",
-    "https://874f8ef7-d563-4ff2-a2c5-db247cafa924.preview.emergentagent.com",
+    "https://goa-match.preview.emergentagent.com",
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 

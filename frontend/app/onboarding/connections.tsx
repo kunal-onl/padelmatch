@@ -1,27 +1,32 @@
-// Step 4: Connections — search players, tap to mark "played with" / "want to play" / "prefer not".
+// Step 8 of 9: Connections — "Played with" only, with multi-tag context.
+// V2 spec: Removed "want to play" and "prefer not". Each tagged player
+// is logged as `played_with` and the user can tag the relationship with
+// "SOCIAL" and/or "COMPETITIVE" (multi-select). Icon set updated for
+// clearer affordances (tennisball = tap to add, x = remove).
 import React, { useEffect, useMemo, useState } from "react";
-import { View, ScrollView, TextInput, TouchableOpacity, Text, StyleSheet, Pressable } from "react-native";
+import { View, ScrollView, TextInput, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { C, F, BORDER } from "../../lib/theme";
-import { SplitCTA, Heading, MicroLabel, Avatar, Body } from "../../lib/ui";
+import { SplitCTA, Heading, Avatar, Body } from "../../lib/ui";
 import { OnboardingHeader } from "../../lib/onboarding-header";
-import { draft } from "../../lib/onboarding-draft";
+import { loadDraft, saveDraft, ConnectionDraft } from "../../lib/onboarding-draft";
 import { api } from "../../lib/api";
 
-type Rel = "played_with" | "want_to_play" | "prefer_not";
-type Conn = { playerId: string; relationship: Rel; reason: string | null; addedAt: string };
-
-const REASONS = ["skill", "social", "both"];
+const TAGS = [
+  { key: "social", label: "SOCIAL", accent: C.purple },
+  { key: "competitive", label: "COMPETITIVE", accent: C.blue },
+];
 
 export default function Connections() {
   const router = useRouter();
   const [players, setPlayers] = useState<any[]>([]);
   const [query, setQuery] = useState("");
-  const [conns, setConns] = useState<Conn[]>(draft.connections as Conn[]);
+  const [conns, setConns] = useState<ConnectionDraft[]>([]);
 
   useEffect(() => {
+    loadDraft().then((d) => setConns(d.connections));
     api.listPlayers().then((all) => setPlayers(all.filter((p: any) => p.id !== "kunal"))).catch(() => {});
   }, []);
 
@@ -32,25 +37,40 @@ export default function Connections() {
   }, [players, query]);
 
   const findConn = (pid: string) => conns.find((c) => c.playerId === pid);
-  const setConn = (pid: string, rel: Rel | null, reason: string | null = null) => {
+
+  const toggleAdd = (pid: string) => {
     setConns((cs) => {
-      const others = cs.filter((c) => c.playerId !== pid);
-      if (!rel) return others;
-      return [...others, { playerId: pid, relationship: rel, reason, addedAt: new Date().toISOString() }];
+      const exists = cs.find((c) => c.playerId === pid);
+      if (exists) return cs.filter((c) => c.playerId !== pid);
+      return [
+        ...cs,
+        { playerId: pid, relationship: "played_with", tags: [], reason: null, addedAt: new Date().toISOString() },
+      ];
     });
   };
 
-  const onNext = () => {
-    draft.connections = conns as any;
-    router.push("/onboarding/shots");
+  const toggleTag = (pid: string, tag: string) => {
+    setConns((cs) =>
+      cs.map((c) => {
+        if (c.playerId !== pid) return c;
+        const has = c.tags.includes(tag);
+        const next = has ? c.tags.filter((t) => t !== tag) : [...c.tags, tag];
+        return { ...c, tags: next, reason: next[0] || null };
+      }),
+    );
+  };
+
+  const onNext = async () => {
+    await saveDraft({ connections: conns });
+    router.push("/onboarding/otp");
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <OnboardingHeader
-        step={4}
+        step={8}
         rightAction={
-          <TouchableOpacity onPress={() => router.push("/onboarding/shots")} testID="skip-connections">
+          <TouchableOpacity onPress={() => router.push("/onboarding/otp")} testID="skip-connections">
             <Text style={{ fontFamily: F.ub700, color: C.ink, fontSize: 10, letterSpacing: 1 }}>SKIP →</Text>
           </TouchableOpacity>
         }
@@ -58,7 +78,8 @@ export default function Connections() {
       <View style={{ paddingHorizontal: 16 }}>
         <Heading size={20}>WHO HAVE YOU PLAYED WITH?</Heading>
         <Body size={11} color={C.grey} style={{ marginTop: 6 }}>
-          Your preferences are private and never shown to other players.
+          Tap the ball to add a player. Then tag the context — social, competitive, or both.
+          Private to you.
         </Body>
 
         <View style={styles.searchRow}>
@@ -77,57 +98,49 @@ export default function Connections() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24 }}>
         {filtered.map((p) => {
           const c = findConn(p.id);
-          const leftColor =
-            c?.relationship === "played_with" ? C.lime :
-            c?.relationship === "want_to_play" ? C.blue :
-            c?.relationship === "prefer_not" ? C.coral : "transparent";
+          const added = !!c;
           return (
-            <View key={p.id} style={[styles.row, { borderLeftWidth: 4, borderLeftColor: leftColor }]} testID={`conn-row-${p.id}`}>
+            <View key={p.id} style={[styles.row, added && { borderLeftWidth: 6, borderLeftColor: C.lime }]} testID={`conn-row-${p.id}`}>
               <View style={{ flexDirection: "row", alignItems: "center", padding: 12 }}>
                 <Avatar name={p.name} size={40} />
                 <View style={{ marginLeft: 12, flex: 1 }}>
                   <Text style={{ fontFamily: F.ub700, fontSize: 12, color: C.ink, letterSpacing: -0.3 }}>{p.name.toUpperCase()}</Text>
                   <View style={{ flexDirection: "row", marginTop: 2, gap: 8 }}>
                     <Text style={{ fontFamily: F.mono, fontSize: 10, color: C.grey }}>{p.gameRating.toFixed(1)}</Text>
-                    <Text style={{ fontFamily: F.sans, fontSize: 10, color: C.grey }}>· {p.preferredVenues?.[0] ? p.preferredVenues[0].split("-")[0].toUpperCase() : ""}</Text>
+                    <Text style={{ fontFamily: F.sans, fontSize: 10, color: C.grey }}>
+                      · {p.preferredVenues?.[0] ? p.preferredVenues[0].split("-")[0].toUpperCase() : ""}
+                    </Text>
                   </View>
                 </View>
 
-                <Pressable
-                  onPress={() => setConn(p.id, c?.relationship === "played_with" ? null : "played_with", c?.relationship === "played_with" ? c?.reason ?? null : "both")}
-                  style={[styles.iconCell, { backgroundColor: c?.relationship === "played_with" ? C.lime : C.cream }]}
-                  testID={`played-${p.id}`}
+                <TouchableOpacity
+                  onPress={() => toggleAdd(p.id)}
+                  style={[styles.actionBtn, added && { backgroundColor: C.lime }]}
+                  testID={`add-${p.id}`}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="tennisball" size={16} color={C.ink} />
-                </Pressable>
-                <Pressable
-                  onPress={() => setConn(p.id, c?.relationship === "want_to_play" ? null : "want_to_play")}
-                  style={[styles.iconCell, { backgroundColor: c?.relationship === "want_to_play" ? C.blue : C.cream, marginLeft: 6 }]}
-                  testID={`want-${p.id}`}
-                >
-                  <Ionicons name="add" size={16} color={c?.relationship === "want_to_play" ? C.white : C.ink} />
-                </Pressable>
-                <Pressable
-                  onPress={() => setConn(p.id, c?.relationship === "prefer_not" ? null : "prefer_not")}
-                  style={[styles.iconCell, { backgroundColor: c?.relationship === "prefer_not" ? C.coral : C.cream, marginLeft: 6 }]}
-                  testID={`block-${p.id}`}
-                >
-                  <Ionicons name="close" size={16} color={c?.relationship === "prefer_not" ? C.white : C.ink} />
-                </Pressable>
+                  <Ionicons
+                    name={added ? "checkmark" : "tennisball"}
+                    size={20}
+                    color={C.ink}
+                  />
+                </TouchableOpacity>
               </View>
 
-              {c?.relationship === "played_with" && (
-                <View style={{ flexDirection: "row", paddingHorizontal: 12, paddingBottom: 10 }}>
-                  {REASONS.map((r) => {
-                    const active = c.reason === r;
+              {added && (
+                <View style={styles.tagRow}>
+                  {TAGS.map((t) => {
+                    const active = c!.tags.includes(t.key);
                     return (
                       <TouchableOpacity
-                        key={r}
-                        onPress={() => setConn(p.id, "played_with", r)}
-                        style={[styles.reason, active && { backgroundColor: C.lime }]}
-                        testID={`reason-${p.id}-${r}`}
+                        key={t.key}
+                        onPress={() => toggleTag(p.id, t.key)}
+                        style={[styles.tag, { backgroundColor: active ? t.accent : C.white, borderColor: C.ink }]}
+                        testID={`tag-${p.id}-${t.key}`}
                       >
-                        <Text style={{ fontFamily: F.ub700, fontSize: 9, letterSpacing: 1, color: C.ink }}>{r.toUpperCase()}</Text>
+                        <Text style={{ fontFamily: F.ub700, fontSize: 10, letterSpacing: 1, color: active ? C.white : C.ink }}>
+                          {t.label}
+                        </Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -139,7 +152,7 @@ export default function Connections() {
       </ScrollView>
 
       <View style={{ padding: 20 }}>
-        <SplitCTA testID="onboarding-step4-continue" label={`CONTINUE (${conns.length})`} onPress={onNext} />
+        <SplitCTA testID="onboarding-step8-continue" label={`CONTINUE (${conns.length})`} onPress={onNext} />
       </View>
     </SafeAreaView>
   );
@@ -153,12 +166,15 @@ const styles = StyleSheet.create({
   },
   search: { marginLeft: 8, flex: 1, color: C.ink, fontFamily: F.sans, fontSize: 13 },
   row: { backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink, marginBottom: 8 },
-  iconCell: {
-    width: 36, height: 36, alignItems: "center", justifyContent: "center",
+  actionBtn: {
+    width: 44, height: 44,
+    backgroundColor: C.cream,
     borderWidth: BORDER, borderColor: C.ink,
+    alignItems: "center", justifyContent: "center",
   },
-  reason: {
-    paddingHorizontal: 10, paddingVertical: 6, borderWidth: BORDER, borderColor: C.ink,
-    marginRight: 6, backgroundColor: C.cream,
+  tagRow: { flexDirection: "row", paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
+  tag: {
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: BORDER,
   },
 });

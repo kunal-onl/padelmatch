@@ -209,20 +209,30 @@ export function Avatar({
   );
 }
 
-/** Pill selector — used in onboarding. */
+/** Pill selector — used in onboarding.
+ *  `activeColor` controls the highlight (defaults to lime).
+ *  `neutralInactive=true` renders inactive pills with white background and a
+ *  hairline ink border instead of cream — used in step 2 so inactive pills
+ *  don't read as lime/green.
+ */
 export function Pill({
   label,
   active,
   onPress,
   testID,
   style,
+  activeColor = C.lime,
+  neutralInactive = false,
 }: {
   label: string;
   active?: boolean;
   onPress: () => void;
   testID?: string;
   style?: StyleProp<ViewStyle>;
+  activeColor?: string;
+  neutralInactive?: boolean;
 }) {
+  const inactiveBg = neutralInactive ? C.white : C.cream;
   return (
     <TouchableOpacity
       testID={testID}
@@ -232,7 +242,7 @@ export function Pill({
         {
           paddingHorizontal: 14, paddingVertical: 10,
           borderWidth: BORDER, borderColor: C.ink,
-          backgroundColor: active ? C.lime : C.cream,
+          backgroundColor: active ? activeColor : inactiveBg,
           minHeight: 44, justifyContent: "center", alignItems: "center",
         },
         style,

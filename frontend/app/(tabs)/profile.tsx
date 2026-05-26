@@ -27,16 +27,10 @@ export default function Profile() {
 
   useFocusEffect(useCallback(() => { refresh().then(load); }, [load, refresh]));
 
-  if (!player) return <SafeAreaView style={styles.safe} />;
-
-  const playersById: Record<string, any> = Object.fromEntries(players.map((p) => [p.id, p]));
-  const venuesById: Record<string, any> = Object.fromEntries(venues.map((v) => [v.id, v]));
-  const winRate = player.matchesPlayed > 0 ? Math.round((player.wins / player.matchesPlayed) * 100) : 0;
-
-  // Sparkline data
-  const history: any[] = player.gameRatingHistory || [];
+  // Sparkline data — compute defensively so hooks run regardless of player.
+  const history: any[] = player?.gameRatingHistory || [];
   const sparkPoints = useMemo(() => {
-    if (history.length < 2) return [];
+    if (history.length < 2) return "";
     const W = 320, H = 60, P = 6;
     const min = Math.min(...history.map((h) => h.rating));
     const max = Math.max(...history.map((h) => h.rating));
@@ -52,12 +46,18 @@ export default function Profile() {
   const radar = useMemo(() => {
     const cats = CATEGORIES.map(({ key, label }) => {
       const inCat = SHOTS.filter((s) => s.category === key);
-      const vals = inCat.map((s) => player.shotComfort?.[s.slug] || 0).filter((v) => v > 0);
+      const vals = inCat.map((s) => player?.shotComfort?.[s.slug] || 0).filter((v) => v > 0);
       const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
       return { key, label, value: avg };
     });
     return cats;
-  }, [player.shotComfort]);
+  }, [player?.shotComfort]);
+
+  if (!player) return <SafeAreaView style={styles.safe} />;
+
+  const playersById: Record<string, any> = Object.fromEntries(players.map((p) => [p.id, p]));
+  const venuesById: Record<string, any> = Object.fromEntries(venues.map((v) => [v.id, v]));
+  const winRate = player.matchesPlayed > 0 ? Math.round((player.wins / player.matchesPlayed) * 100) : 0;
 
   const lastTen = history.slice(-10);
   const sparkDelta = lastTen.length >= 2 ? Math.round((lastTen[lastTen.length - 1].rating - lastTen[0].rating) * 10) / 10 : 0;
@@ -125,7 +125,18 @@ export default function Profile() {
 
         {/* Radar */}
         <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-          <Heading size={11}>SHOT COMFORT</Heading>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Heading size={11}>SHOT COMFORT</Heading>
+            <TouchableOpacity
+              testID="rate-shots-entry"
+              onPress={() => router.push("/profile/shots")}
+              style={{ paddingVertical: 4, paddingHorizontal: 8 }}
+            >
+              <Text style={{ fontFamily: F.mono, fontSize: 10, color: C.blue, letterSpacing: 1.4 }}>
+                RATE YOUR SHOTS →
+              </Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.chartCard}>
             <RadarChart data={radar} />
           </View>

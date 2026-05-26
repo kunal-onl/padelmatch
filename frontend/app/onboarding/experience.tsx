@@ -1,14 +1,18 @@
-// Step 2: Experience — 4 question cards.
-import React, { useState } from "react";
+// Step 2 of 9: Experience — 4 question cards.
+// V2: inactive pills now use the `neutralInactive` variant (white bg, ink
+// border) so the screen no longer reads as "all green". The active pill
+// still highlights in its question's accent colour, but inactive pills
+// no longer share the lime tint.
+import React, { useEffect, useState } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { C, F, BORDER } from "../../lib/theme";
+import { C, BORDER } from "../../lib/theme";
 import { SplitCTA, Heading, MicroLabel, Pill } from "../../lib/ui";
 import { OnboardingHeader } from "../../lib/onboarding-header";
-import { draft } from "../../lib/onboarding-draft";
+import { draft, loadDraft, saveDraft } from "../../lib/onboarding-draft";
 
-type Q = { key: string; label: string; accent: string; options: Array<{ value: string; label: string }> };
+type Q = { key: string; label: string; accent: string; options: { value: string; label: string }[] };
 
 const QUESTIONS: Q[] = [
   {
@@ -49,22 +53,30 @@ const QUESTIONS: Q[] = [
 
 export default function Experience() {
   const router = useRouter();
-  const [vals, setVals] = useState<Record<string, string>>({
-    yearsPlayed: draft.yearsPlayed,
-    frequency: draft.frequency,
-    competitiveExperience: draft.competitiveExperience,
-    wallControl: draft.wallControl,
-  });
+  const [vals, setVals] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    loadDraft().then((d) => {
+      setVals({
+        yearsPlayed: d.yearsPlayed,
+        frequency: d.frequency,
+        competitiveExperience: d.competitiveExperience,
+        wallControl: d.wallControl,
+      });
+    });
+  }, []);
 
   const setVal = (k: string, v: string) => setVals((s) => ({ ...s, [k]: v }));
   const valid = QUESTIONS.every((q) => vals[q.key]);
 
-  const onNext = () => {
-    draft.yearsPlayed = vals.yearsPlayed;
-    draft.frequency = vals.frequency;
-    draft.competitiveExperience = vals.competitiveExperience;
-    draft.wallControl = vals.wallControl;
-    router.push("/onboarding/preferences");
+  const onNext = async () => {
+    await saveDraft({
+      yearsPlayed: vals.yearsPlayed,
+      frequency: vals.frequency,
+      competitiveExperience: vals.competitiveExperience,
+      wallControl: vals.wallControl,
+    });
+    router.push("/onboarding/venues");
   };
 
   return (
@@ -85,6 +97,8 @@ export default function Experience() {
                     testID={`q-${q.key}-${o.value}`}
                     label={o.label}
                     active={vals[q.key] === o.value}
+                    activeColor={q.accent === C.ink ? C.lime : q.accent}
+                    neutralInactive
                     onPress={() => setVal(q.key, o.value)}
                     style={{ marginRight: 8, marginBottom: 8 }}
                   />

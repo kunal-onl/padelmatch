@@ -51,6 +51,7 @@ class Connection(BaseModel):
     playerId: str
     relationship: str  # played_with | want_to_play | prefer_not
     reason: Optional[str] = None
+    tags: List[str] = []  # multi-select: social, competitive (or sub-tags)
     addedAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -97,6 +98,14 @@ class Player(BaseModel):
     )
     profileCompleteness: int = 0
     onboardingCompletedAt: Optional[str] = None
+    # Onboarding V2 fields
+    rankedDays: List[str] = []  # day-of-week strings in preference order
+    preferredStartTime: Optional[str] = None  # e.g. "07:00"
+    preferredEndTime: Optional[str] = None    # e.g. "21:00"
+    rankedTimeBlocks: List[str] = []  # ordered list of day-of-week (or day×slot) labels
+    gameTypes: List[str] = []  # ["competitive", "social"]
+    whatsappVerified: bool = False
+    whatsappVerifiedAt: Optional[str] = None
 
 
 class SetScore(BaseModel):
@@ -155,29 +164,32 @@ class Notification(BaseModel):
 # ----------------------------- SEED DATA -----------------------------
 
 VENUES_SEED = [
-    {"id": "round-two", "name": "Round Two", "area": "Vagator",
-     "hudleUrl": "https://hudle.in/venues/round-two-vagator",
-     "courts": [{"id": "round-two-c1", "name": "Court 1"}]},
-    {"id": "sunday-club", "name": "Sunday Club", "area": "Siolim",
+    {"id": "coco-anjuna", "name": "Coco Padel", "area": "Anjuna",
+     "hudleUrl": "https://hudle.in/venues/coco-padel-anjuna",
+     "courts": [{"id": "coco-anjuna-c1", "name": "Court 1"}]},
+    {"id": "coco-assagao", "name": "Coco Padel", "area": "Assagao",
+     "hudleUrl": "https://hudle.in/venues/coco-padel-assagao",
+     "courts": [{"id": "coco-assagao-c1", "name": "Court 1"}]},
+    {"id": "coplay", "name": "CoPlay", "area": "Assagao",
+     "hudleUrl": "https://hudle.in/venues/coplay-assagao",
+     "courts": [{"id": "coplay-c1", "name": "Court 1"}]},
+    {"id": "coplay-panjim", "name": "CoPlay", "area": "Panjim",
+     "hudleUrl": "https://hudle.in/venues/coplay-panjim",
+     "courts": [{"id": "coplay-panjim-c1", "name": "Court 1"}]},
+    {"id": "jolt-method", "name": "Jolt Method", "area": "Siolim",
+     "hudleUrl": "https://hudle.in/venues/jolt-method-siolim",
+     "courts": [{"id": "jolt-c1", "name": "Court 1"}]},
+    {"id": "sunday-club", "name": "Sunday R&SC", "area": "Siolim",
      "hudleUrl": "https://hudle.in/venues/sunday-racquet-social-club",
      "courts": [{"id": "sunday-c1", "name": "Court 1"},
                 {"id": "sunday-c2", "name": "Court 2"},
                 {"id": "sunday-c3", "name": "Court 3"}]},
-    {"id": "jolt-method", "name": "Jolt Method", "area": "Siolim",
-     "hudleUrl": "https://hudle.in/venues/jolt-method-siolim",
-     "courts": [{"id": "jolt-c1", "name": "Court 1"}]},
-    {"id": "coplay", "name": "CoPlay", "area": "Assagao",
-     "hudleUrl": "https://hudle.in/venues/coplay-assagao",
-     "courts": [{"id": "coplay-c1", "name": "Court 1"}]},
-    {"id": "coco-assagao", "name": "Coco Padel", "area": "Assagao",
-     "hudleUrl": "https://hudle.in/venues/coco-padel-assagao",
-     "courts": [{"id": "coco-assagao-c1", "name": "Court 1"}]},
-    {"id": "coco-anjuna", "name": "Coco Padel", "area": "Anjuna",
-     "hudleUrl": "https://hudle.in/venues/coco-padel-anjuna",
-     "courts": [{"id": "coco-anjuna-c1", "name": "Court 1"}]},
-    {"id": "padel-people", "name": "Padel People", "area": "Soccorro",
-     "hudleUrl": "https://hudle.in/venues/padel-people-soccorro",
+    {"id": "padel-people", "name": "Padel People", "area": "Socorro",
+     "hudleUrl": "https://hudle.in/venues/padel-people-socorro",
      "courts": [{"id": "padel-people-c1", "name": "Court 1"}]},
+    {"id": "round-two", "name": "Round Two", "area": "Vagator",
+     "hudleUrl": "https://hudle.in/venues/round-two-vagator",
+     "courts": [{"id": "round-two-c1", "name": "Court 1"}]},
 ]
 
 ALL_VENUE_IDS = [v["id"] for v in VENUES_SEED]
@@ -300,6 +312,11 @@ async def seed_if_empty():
     if await db.venues.count_documents({}) == 0:
         await db.venues.insert_many([dict(v) for v in VENUES_SEED])
         log.info("Seeded %d venues", len(VENUES_SEED))
+    else:
+        # Idempotent migration to ensure existing DB has updated venue list.
+        for v in VENUES_SEED:
+            await db.venues.update_one({"id": v["id"]}, {"$set": v}, upsert=True)
+        log.info("Synced %d venues", len(VENUES_SEED))
 
     if await db.players.count_documents({}) > 0:
         return
@@ -621,6 +638,13 @@ class PlayerCreate(BaseModel):
     gameOrientation: str = "both"
     connections: List[Connection] = []
     shotComfort: Dict[str, int] = {}
+    # Onboarding V2 fields
+    rankedDays: List[str] = []
+    preferredStartTime: Optional[str] = None
+    preferredEndTime: Optional[str] = None
+    rankedTimeBlocks: List[str] = []
+    gameTypes: List[str] = []
+    whatsappVerified: bool = False
 
 
 @api.post("/players")
@@ -881,6 +905,37 @@ async def reseed():
     await db.venues.delete_many({})
     await seed_if_empty()
     return {"ok": True}
+
+
+# --------------------------- OTP (PLACEHOLDER) ---------------------------
+# Mock WhatsApp OTP. Accepts any 6-digit code OR the universal demo code
+# 123456. MSG91 integration will plug in here later. The endpoint
+# intentionally returns the OTP for development so frontend can echo it.
+
+class OtpSend(BaseModel):
+    phone: str
+
+class OtpVerify(BaseModel):
+    phone: str
+    code: str
+
+
+@api.post("/auth/otp/send")
+async def otp_send(body: OtpSend):
+    """Mock OTP send. Returns the code for dev only."""
+    log.info("Mock OTP requested for phone %s", body.phone)
+    return {"ok": True, "phone": body.phone, "devCode": "123456",
+            "note": "Mock provider. Replace with MSG91 when ready."}
+
+
+@api.post("/auth/otp/verify")
+async def otp_verify(body: OtpVerify):
+    code = (body.code or "").strip()
+    if len(code) != 6 or not code.isdigit():
+        raise HTTPException(400, "Invalid code format")
+    # Accept any 6-digit code in mock mode.
+    return {"ok": True, "verified": True, "phone": body.phone,
+            "verifiedAt": datetime.now(timezone.utc).isoformat()}
 
 
 # --------------------------- BRAND ASSETS ---------------------------

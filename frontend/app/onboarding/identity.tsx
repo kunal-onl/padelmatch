@@ -1,28 +1,38 @@
-// Step 1: Identity — name, phone, optional photo (omitted upload widget for MVP).
-import React, { useState } from "react";
+// Step 1 of 9: Identity — name + WhatsApp number.
+// V2: Removed the photo upload widget. Profile photo can be added later
+// from the user profile screen. Progress indicator is now the shared
+// "racket holes" dots.
+import React, { useEffect, useState } from "react";
 import {
   View, Text, TextInput, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { C, F, BORDER } from "../../lib/theme";
 import { SplitCTA, MicroLabel, Body } from "../../lib/ui";
 import { OnboardingHeader } from "../../lib/onboarding-header";
-import { draft } from "../../lib/onboarding-draft";
+import { draft, loadDraft, saveDraft } from "../../lib/onboarding-draft";
 import { usePlayer } from "../../lib/context";
 
 export default function Identity() {
   const router = useRouter();
   const { signIn } = usePlayer();
-  const [name, setName] = useState(draft.name);
-  const [phone, setPhone] = useState(draft.phone);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [ready, setReady] = useState(false);
 
-  const onNext = () => {
+  useEffect(() => {
+    loadDraft().then((d) => {
+      setName(d.name);
+      setPhone(d.phone);
+      setReady(true);
+    });
+  }, []);
+
+  const onNext = async () => {
     if (!name.trim()) return Alert.alert("Add your name", "Please add your name to continue.");
     if (phone.trim().length < 6) return Alert.alert("Add a phone number", "WhatsApp number is required.");
-    draft.name = name.trim();
-    draft.phone = phone.trim();
+    await saveDraft({ name: name.trim(), phone: phone.trim() });
     router.push("/onboarding/experience");
   };
 
@@ -42,24 +52,15 @@ export default function Identity() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={{ alignItems: "center", marginTop: 24, marginBottom: 28 }}>
+          <View style={{ alignItems: "center", marginTop: 28, marginBottom: 36 }}>
             <Text style={styles.wordmark}>PADEL MATCH</Text>
             <View style={{ height: 6 }} />
             <MicroLabel color={C.lime}>padelmatch.in</MicroLabel>
-            <View style={{ height: 22 }} />
+            <View style={{ height: 28 }} />
             <Text style={styles.subtitle}>JOIN NORTH GOA PADEL</Text>
           </View>
 
-          <View style={styles.avatarWrap}>
-            <View style={styles.avatar}>
-              <Ionicons name="add" size={32} color={C.lime} />
-            </View>
-            <Body color="rgba(255,255,255,0.6)" size={10} style={{ marginTop: 8, textAlign: "center" }}>
-              Photo upload coming soon
-            </Body>
-          </View>
-
-          <View style={{ marginTop: 28 }}>
+          <View style={{ marginTop: 8 }}>
             <MicroLabel color={C.lime} style={{ marginBottom: 6 }}>YOUR NAME</MicroLabel>
             <TextInput
               testID="onboarding-name-input"
@@ -70,6 +71,7 @@ export default function Identity() {
               style={styles.input}
               autoCapitalize="words"
               returnKeyType="next"
+              editable={ready}
             />
           </View>
 
@@ -88,10 +90,11 @@ export default function Identity() {
                 style={[styles.input, { flex: 1, marginTop: 0 }]}
                 keyboardType="phone-pad"
                 returnKeyType="done"
+                editable={ready}
               />
             </View>
             <Body color="rgba(255,255,255,0.55)" size={10} style={{ marginTop: 6 }}>
-              Used for game notifications only. Never shared publicly.
+              We&apos;ll verify this with a WhatsApp OTP at the end.
             </Body>
           </View>
         </ScrollView>
@@ -113,13 +116,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.ink },
   wordmark: { fontFamily: F.ub900, color: C.white, fontSize: 32, letterSpacing: -1 },
   subtitle: { fontFamily: F.ub400, color: C.white, fontSize: 11, letterSpacing: 2 },
-  avatarWrap: { alignItems: "center" },
-  avatar: {
-    width: 84, height: 84,
-    borderWidth: BORDER, borderColor: C.lime, borderStyle: "dashed",
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: "rgba(201,229,47,0.08)",
-  },
   input: {
     backgroundColor: C.cream,
     borderWidth: BORDER, borderColor: C.lime,

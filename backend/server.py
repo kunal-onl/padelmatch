@@ -6,7 +6,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-import os, logging, uuid, math, random
+import os, logging, uuid, math, random, asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
@@ -165,31 +165,31 @@ class Notification(BaseModel):
 
 VENUES_SEED = [
     {"id": "coco-anjuna", "name": "Coco Padel", "area": "Anjuna",
-     "hudleUrl": "https://hudle.in/venues/coco-padel-anjuna",
+     "hudleUrl": "https://hudle.in/venues/coco-padel-circle-anjuna/615130",
      "courts": [{"id": "coco-anjuna-c1", "name": "Court 1"}]},
     {"id": "coco-assagao", "name": "Coco Padel", "area": "Assagao",
-     "hudleUrl": "https://hudle.in/venues/coco-padel-assagao",
+     "hudleUrl": "https://hudle.in/venues/coco-padel-assagao/585376",
      "courts": [{"id": "coco-assagao-c1", "name": "Court 1"}]},
-    {"id": "coplay", "name": "CoPlay", "area": "Assagao",
-     "hudleUrl": "https://hudle.in/venues/coplay-assagao",
-     "courts": [{"id": "coplay-c1", "name": "Court 1"}]},
+    {"id": "coplay-assagao", "name": "CoPlay", "area": "Assagao",
+     "hudleUrl": "https://hudle.in/venues/coplay-at-assagao-house/268830",
+     "courts": [{"id": "coplay-assagao-c1", "name": "Court 1"}]},
     {"id": "coplay-panjim", "name": "CoPlay", "area": "Panjim",
-     "hudleUrl": "https://hudle.in/venues/coplay-panjim",
+     "hudleUrl": "https://hudle.in/venues/coplay-panjim-gymkhana/808217",
      "courts": [{"id": "coplay-panjim-c1", "name": "Court 1"}]},
+    {"id": "clube-de-floresta", "name": "Clube de Floresta", "area": "Assagao",
+     "hudleUrl": "https://hudle.in/venues/clube-de-floresta-forest-club/522426",
+     "courts": [{"id": "floresta-c1", "name": "Court 1"}]},
     {"id": "jolt-method", "name": "Jolt Method", "area": "Siolim",
-     "hudleUrl": "https://hudle.in/venues/jolt-method-siolim",
+     "hudleUrl": "https://hudle.in/venues/jolt-method-siolim/788990",
      "courts": [{"id": "jolt-c1", "name": "Court 1"}]},
+    {"id": "round-two", "name": "Round Two", "area": "Vagator",
+     "hudleUrl": "https://hudle.in/venues/round-two-vagator/897288",
+     "courts": [{"id": "round-two-c1", "name": "Court 1"}]},
     {"id": "sunday-club", "name": "Sunday R&SC", "area": "Siolim",
-     "hudleUrl": "https://hudle.in/venues/sunday-racquet-social-club",
+     "hudleUrl": "https://hudle.in/venues/sunday-racquet-and-social-club-siolim/515320",
      "courts": [{"id": "sunday-c1", "name": "Court 1"},
                 {"id": "sunday-c2", "name": "Court 2"},
                 {"id": "sunday-c3", "name": "Court 3"}]},
-    {"id": "padel-people", "name": "Padel People", "area": "Socorro",
-     "hudleUrl": "https://hudle.in/venues/padel-people-socorro",
-     "courts": [{"id": "padel-people-c1", "name": "Court 1"}]},
-    {"id": "round-two", "name": "Round Two", "area": "Vagator",
-     "hudleUrl": "https://hudle.in/venues/round-two-vagator",
-     "courts": [{"id": "round-two-c1", "name": "Court 1"}]},
 ]
 
 ALL_VENUE_IDS = [v["id"] for v in VENUES_SEED]
@@ -314,8 +314,11 @@ async def seed_if_empty():
         log.info("Seeded %d venues", len(VENUES_SEED))
     else:
         # Idempotent migration to ensure existing DB has updated venue list.
+        seed_ids = [v["id"] for v in VENUES_SEED]
         for v in VENUES_SEED:
             await db.venues.update_one({"id": v["id"]}, {"$set": v}, upsert=True)
+        # Drop any venues that are no longer in the canonical list.
+        await db.venues.delete_many({"id": {"$nin": seed_ids}})
         log.info("Synced %d venues", len(VENUES_SEED))
 
     if await db.players.count_documents({}) > 0:
@@ -404,7 +407,7 @@ async def seed_if_empty():
         {"playerId": "p-meera", "relationship": "played_with", "reason": "skill",
          "addedAt": datetime.now(timezone.utc).isoformat()},
     ]
-    kunal["preferredVenues"] = ["sunday-club", "round-two", "coplay", "padel-people"]
+    kunal["preferredVenues"] = ["sunday-club", "round-two", "coplay-assagao", "clube-de-floresta"]
     kunal["availabilitySlots"] = [
         AvailabilitySlot(dayOfWeek="monday", startTime="18:00", endTime="20:00").model_dump(),
         AvailabilitySlot(dayOfWeek="wednesday", startTime="18:00", endTime="20:00").model_dump(),
@@ -423,8 +426,8 @@ async def seed_if_empty():
         # (host, venue, court, day_offset, start, end, min, max, players)
         ("p-arjun", "sunday-club", "sunday-c1", 0, "18:00", "19:30", 7.0, 8.5, ["p-arjun", "p-priya"]),
         ("p-rohan", "round-two", "round-two-c1", 1, "19:00", "20:30", 6.5, 8.0, ["p-rohan", "p-anita", "kunal"]),
-        ("p-anita", "coplay", "coplay-c1", 2, "07:00", "08:30", 5.5, 7.5, ["p-anita", "p-meera"]),
-        ("p-sahil", "padel-people", "padel-people-c1", 2, "18:00", "19:30", 5.0, 6.5, ["p-sahil", "p-divya"]),
+        ("p-anita", "coplay-assagao", "coplay-assagao-c1", 2, "07:00", "08:30", 5.5, 7.5, ["p-anita", "p-meera"]),
+        ("p-sahil", "clube-de-floresta", "floresta-c1", 2, "18:00", "19:30", 5.0, 6.5, ["p-sahil", "p-divya"]),
         ("p-vikram", "sunday-club", "sunday-c2", 3, "19:00", "20:30", 6.0, 7.5, ["p-vikram", "p-sneha", "p-rohan"]),
         ("p-tanvi", "coco-anjuna", "coco-anjuna-c1", 4, "17:00", "18:30", 4.5, 6.0, ["p-tanvi", "p-rahul"]),
         ("p-priya", "jolt-method", "jolt-c1", 5, "07:00", "08:30", 7.0, 8.5, ["p-priya", "p-arjun", "p-rohan"]),
@@ -464,10 +467,10 @@ async def seed_if_empty():
          "round-two", "round-two-c1"),
         (-12, ["kunal", "p-arjun"], ["p-priya", "p-rohan"], "pairA",
          [{"pairA": 7, "pairB": 5}, {"pairA": 6, "pairB": 4}],
-         "padel-people", "padel-people-c1"),
+         "clube-de-floresta", "floresta-c1"),
         (-18, ["p-rohan", "kunal"], ["p-sahil", "p-divya"], "pairA",
          [{"pairA": 6, "pairB": 2}, {"pairA": 6, "pairB": 3}],
-         "coplay", "coplay-c1"),
+         "coplay-assagao", "coplay-assagao-c1"),
     ]
     matches = []
     for off, pa, pb, winner, sets, venue, court in played_seed:
@@ -907,6 +910,359 @@ async def reseed():
     return {"ok": True}
 
 
+# --------------------------- COMMUNITY SEED (real players) ---------------------------
+# Real North-Goa Padel community roster — upserted by id on startup and via
+# POST /api/dev/seed-community. Profile/preferences fields are always synced
+# (these are the source of truth). Stat fields (gameRating, matchesPlayed,
+# wins, losses, gameRatingHistory, …) are only set on FIRST insert via
+# $setOnInsert so any computed match values are preserved across reseeds.
+
+COMMUNITY_SEED = [
+    # ── ACTIVE ────────────────────────────────────────────────
+    {"id": "kunal", "name": "Kunal Bambawale", "phone": "+919834751704",
+     "status": "active", "invitedBy": None, "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two", "sunday-club", "jolt-method"],
+     "rankedDays": ["monday", "wednesday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "19:00", "preferredEndTime": "20:30",
+     "connections": []},
+
+    # ── INVITED — preferences documented ─────────────────────
+    {"id": "abhilaash-s", "name": "Abhilaash Sahu", "phone": "+917042780534",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two", "sunday-club", "coco-anjuna"],
+     "rankedDays": ["monday", "wednesday", "thursday", "friday"],
+     "preferredStartTime": "18:00", "preferredEndTime": "19:30",
+     "connections": [
+        {"playerId": "aakash-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "abraham-ja", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "varun-n", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "adhi-b", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "sagar-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "amar-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "kunal", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "abhizer-r", "name": "Abhizer Rajkotwala", "phone": "+917303197397",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "round-two"],
+     "rankedDays": ["tuesday", "thursday", "saturday"],
+     "preferredStartTime": "17:00", "preferredEndTime": "20:00",
+     "connections": []},
+    {"id": "abraham-ja", "name": "Abraham J.A.", "phone": "+919740194001",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "clube-de-floresta"],
+     "rankedDays": ["wednesday", "friday", "saturday"],
+     "preferredStartTime": "09:00", "preferredEndTime": "22:00",
+     "connections": [
+        {"playerId": "aakash-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "teyjas-c", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "prayaag", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "ryan", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "vibhav", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "bharat", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "adhi-b", "name": "Adhi Bhattacharya", "phone": "+918971908034",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [],
+     "rankedDays": ["tuesday", "wednesday", "thursday", "saturday"],
+     "preferredStartTime": "08:00", "preferredEndTime": "21:00",
+     "connections": []},
+    {"id": "amar-s", "name": "Amar Sarvaria", "phone": "+919910869827",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two", "coco-assagao", "clube-de-floresta"],
+     "rankedDays": ["friday", "saturday", "sunday"],
+     "preferredStartTime": "17:30", "preferredEndTime": "20:00",
+     "connections": [
+        {"playerId": "abhilaash-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "aakash-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "alexander-m", "relationship": "played_with", "tags": ["social", "competitive"]},
+     ]},
+    {"id": "aman-m", "name": "Aman Mamgain", "phone": "+918010599485",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "jolt-method", "round-two"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "18:00", "preferredEndTime": "21:00",
+     "connections": []},
+    {"id": "ashwin-s", "name": "Ashwin Saksena", "phone": "+919820069169",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "coco-assagao", "round-two"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "07:00", "preferredEndTime": "10:00",
+     "connections": []},
+    {"id": "dinika-t", "name": "Dinika Thomas", "phone": "+919742804532",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "coco-anjuna", "coco-assagao"],
+     "rankedDays": ["monday", "tuesday", "thursday"],
+     "preferredStartTime": "08:00", "preferredEndTime": "21:00",
+     "connections": [
+        {"playerId": "adhi-b", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "teyjas-c", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "aakash-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "abraham-ja", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "marina-b", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "aneesha-l", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "polina-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "rhea-m", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "gaurav-c", "name": "Gaurav Chander", "phone": "+917506941144",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "coplay-panjim", "jolt-method"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+     "preferredStartTime": "09:00", "preferredEndTime": "19:00",
+     "connections": []},
+    {"id": "girish-v", "name": "Girish Venkatraman", "phone": "+918087603676",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "jolt-method"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+     "preferredStartTime": "18:00", "preferredEndTime": "21:00",
+     "connections": [
+        {"playerId": "rishi-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "abhishek-b", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "adhi-b", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "harsh", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "laveen", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "bharat", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "ishaan-a", "name": "Ishaan Ahluwalia", "phone": "+919867384576",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["coplay-assagao", "sunday-club", "coco-anjuna"],
+     "rankedDays": ["monday", "wednesday", "friday"],
+     "preferredStartTime": "18:30", "preferredEndTime": "20:00",
+     "connections": [
+        {"playerId": "teyjas-c", "relationship": "played_with", "tags": ["social", "competitive"]},
+        {"playerId": "kusai", "relationship": "played_with", "tags": ["social", "competitive"]},
+        {"playerId": "karan-meh", "relationship": "played_with", "tags": ["social", "competitive"]},
+        {"playerId": "vishnu-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "moustapha", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "marlon-r", "name": "Marlon Rodrigues", "phone": "+919822758927",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two", "coco-assagao", "sunday-club"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "07:00", "preferredEndTime": "22:00",
+     "connections": []},
+    {"id": "belal-m", "name": "Mohammad Belal", "phone": "+918789170194",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two", "sunday-club"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "17:00", "preferredEndTime": "20:00",
+     "connections": [
+        {"playerId": "aakash-m", "relationship": "played_with", "tags": ["social", "competitive"]},
+        {"playerId": "abraham-ja", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "mikhail-m", "relationship": "played_with", "tags": ["competitive"]},
+     ]},
+    {"id": "mukund-m", "name": "Mukund Muthanna", "phone": "+917204035030",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "18:00", "preferredEndTime": "22:00",
+     "connections": []},
+    {"id": "prashasti-p", "name": "Prashasti Pandey", "phone": "+919967312974",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "07:00", "preferredEndTime": "21:00",
+     "connections": [
+        {"playerId": "mihika-c", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "polina-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "sonam", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "tamanna", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "ragini-m", "name": "Ragini Menon", "phone": "+919591693024",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "07:00", "preferredEndTime": "21:00",
+     "connections": []},
+    {"id": "sagar-m", "name": "Sagar Malik", "phone": "+919810807858",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two", "clube-de-floresta"],
+     "rankedDays": ["wednesday", "thursday", "friday"],
+     "preferredStartTime": "15:00", "preferredEndTime": "19:00",
+     "connections": [
+        {"playerId": "alexander-m", "relationship": "played_with", "tags": ["competitive"]},
+     ]},
+    {"id": "sagarika-b", "name": "Sagarika Bhandari", "phone": "+918279986583",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "07:00", "preferredEndTime": "21:00",
+     "connections": [
+        {"playerId": "mihika-c", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "abhilaash-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "arjun", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "shashank-s", "name": "Shashank Shekhar", "phone": "+918861062663",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [],
+     "rankedDays": ["monday", "wednesday", "friday", "sunday"],
+     "preferredStartTime": "07:30", "preferredEndTime": "21:00",
+     "connections": [
+        {"playerId": "amar-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "aakash-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "belal-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "abraham-ja", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "teyjas-c", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "deepinder-s", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "karan-meh", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "moustapha", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "teyjas-c", "name": "Teyjas Chaudhry", "phone": "+919354207113",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "coco-assagao", "jolt-method", "clube-de-floresta"],
+     "rankedDays": ["tuesday", "thursday", "friday"],
+     "preferredStartTime": "17:00", "preferredEndTime": "20:00",
+     "connections": []},
+    {"id": "tushar-c", "name": "Tushar Chhabra", "phone": "+917030203408",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["sunday-club", "coco-anjuna", "coco-assagao"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "17:00", "preferredEndTime": "21:00",
+     "connections": [
+        {"playerId": "aman-m", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "garv-v", "relationship": "played_with", "tags": ["social"]},
+        {"playerId": "arpit-s", "relationship": "played_with", "tags": ["social"]},
+     ]},
+    {"id": "varun-n", "name": "Varun Narayanan", "phone": "+919945132553",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": ["round-two", "coco-assagao", "clube-de-floresta"],
+     "rankedDays": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+     "preferredStartTime": "18:00", "preferredEndTime": "22:00",
+     "connections": []},
+
+    # ── INVITED — no preferences yet ─────────────────────────
+    {"id": "aakash-m", "name": "Aakash Moitra", "phone": "+919599206792",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "abhishek-b", "name": "Abhishek Bardia", "phone": None,
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "harry-s", "name": "Harry Singh", "phone": "+919820715063",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "mihika-c", "name": "Mihika Chanchani", "phone": "+919902474654",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "rishi-s", "name": "Rishi Solanki", "phone": "+919833077209",
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "nishant-w", "name": "Nishant Walambe", "phone": None,
+     "status": "invited", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+
+    # ── GHOST PROFILES ───────────────────────────────────────
+    {"id": "alexander-m", "name": "Alexander McPherson", "phone": "+919172095371",
+     "status": "ghost", "invitedBy": "amar-s", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "anand-c", "name": "Anand Chandani", "phone": None,
+     "status": "ghost", "invitedBy": "abhilaash-s", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "arjun", "name": "Arjun", "phone": None,
+     "status": "ghost", "invitedBy": "sagarika-b", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "arpit-s", "name": "Arpit Shah", "phone": None,
+     "status": "ghost", "invitedBy": "tushar-c", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "bharat", "name": "Bharat", "phone": None,
+     "status": "ghost", "invitedBy": "girish-v", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "deepinder-s", "name": "Deepinder Singh", "phone": None,
+     "status": "ghost", "invitedBy": "shashank-s", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "garv-v", "name": "Garv Vohra", "phone": None,
+     "status": "ghost", "invitedBy": "tushar-c", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "harsh", "name": "Harsh", "phone": None,
+     "status": "ghost", "invitedBy": "girish-v", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "jashan-a", "name": "Jashan Arora", "phone": None,
+     "status": "ghost", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "karan-meh", "name": "Karan Mehrota", "phone": None,
+     "status": "ghost", "invitedBy": "ishaan-a", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "kusai", "name": "Kusai", "phone": None,
+     "status": "ghost", "invitedBy": "ishaan-a", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "laveen", "name": "Laveen", "phone": None,
+     "status": "ghost", "invitedBy": "girish-v", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "lokesh-c", "name": "Lokesh Chhabra", "phone": None,
+     "status": "ghost", "invitedBy": "kunal", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "mikhail-m", "name": "Mikhail Mehra", "phone": None,
+     "status": "ghost", "invitedBy": "belal-m", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "moustapha", "name": "Moustapha", "phone": None,
+     "status": "ghost", "invitedBy": "shashank-s", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "marina-b", "name": "Marina Barskaya", "phone": None,
+     "status": "ghost", "invitedBy": "dinika-t", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "aneesha-l", "name": "Aneesha Labroo", "phone": None,
+     "status": "ghost", "invitedBy": "dinika-t", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "polina-s", "name": "Polina Shabalina", "phone": None,
+     "status": "ghost", "invitedBy": "dinika-t", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "prayaag", "name": "Prayaag", "phone": None,
+     "status": "ghost", "invitedBy": "abraham-ja", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "rajat", "name": "Rajat", "phone": None,
+     "status": "ghost", "invitedBy": "adhi-b", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "rhea-m", "name": "Rhea Mathew", "phone": None,
+     "status": "ghost", "invitedBy": "dinika-t", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "ryan", "name": "Ryan", "phone": None,
+     "status": "ghost", "invitedBy": "abraham-ja", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "sonam", "name": "Sonam", "phone": None,
+     "status": "ghost", "invitedBy": "prashasti-p", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "tamanna", "name": "Tamanna", "phone": None,
+     "status": "ghost", "invitedBy": "prashasti-p", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "vibhav", "name": "Vibhav", "phone": None,
+     "status": "ghost", "invitedBy": "abraham-ja", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+    {"id": "vishnu-m", "name": "Vishnu Malani", "phone": None,
+     "status": "ghost", "invitedBy": "ishaan-a", "communityId": "north-goa-padel",
+     "preferredVenues": [], "rankedDays": [], "connections": []},
+]
+
+
+async def seed_community() -> int:
+    """Upsert every COMMUNITY_SEED entry by id.
+
+    Fields in the seed dict are always synced via $set (these are
+    canonical profile/preference data). Player default fields like
+    gameRating, matchesPlayed, wins, losses, gameRatingHistory, joinedAt,
+    lastActiveAt are only written on first insert via $setOnInsert so any
+    computed values from matches are preserved.
+    """
+    count = 0
+    for seed in COMMUNITY_SEED:
+        defaults = Player(id=seed["id"], name=seed["name"]).model_dump()
+        # Strip the keys we always $set so they don't end up in $setOnInsert.
+        for k in list(seed.keys()):
+            defaults.pop(k, None)
+        await db.players.update_one(
+            {"id": seed["id"]},
+            {"$set": dict(seed), "$setOnInsert": defaults},
+            upsert=True,
+        )
+        count += 1
+    log.info("Seeded community: upserted %d players", count)
+    return count
+
+
+@api.post("/dev/seed-community")
+async def dev_seed_community():
+    """Idempotent upsert of the real community roster. Safe to call repeatedly."""
+    n = await seed_community()
+    return {"ok": True, "seeded": n}
+
+
 # --------------------------- OTP (PLACEHOLDER) ---------------------------
 # Mock WhatsApp OTP. Accepts any 6-digit code OR the universal demo code
 # 123456. MSG91 integration will plug in here later. The endpoint
@@ -1047,7 +1403,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup():
     try:
-        await seed_if_empty()
+        await asyncio.gather(seed_if_empty(), seed_community())
     except Exception as e:
         log.exception("seed failed: %s", e)
 

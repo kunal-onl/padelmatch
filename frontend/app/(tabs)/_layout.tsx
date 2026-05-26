@@ -12,7 +12,7 @@ const TAB_META: Record<string, { icon: IconName; label: string; testID: string }
   home: { icon: "home", label: "HOME", testID: "tab-home" },
   games: { icon: "tennisball-outline", label: "GAMES", testID: "tab-games" },
   create: { icon: "add", label: "CREATE", testID: "tab-create" },
-  leaderboard: { icon: "trophy-outline", label: "RANKS", testID: "tab-leaderboard" },
+  courts: { icon: "grid-outline", label: "COURTS", testID: "tab-courts" },
   profile: { icon: "person-circle-outline", label: "PROFILE", testID: "tab-profile" },
 };
 
@@ -79,8 +79,10 @@ export default function TabsLayout() {
       <Tabs.Screen name="home" />
       <Tabs.Screen name="games" />
       <Tabs.Screen name="create" />
-      <Tabs.Screen name="leaderboard" />
+      <Tabs.Screen name="courts" />
       <Tabs.Screen name="profile" />
+      {/* Leaderboard route is preserved but hidden from the tab bar. */}
+      <Tabs.Screen name="leaderboard" options={{ href: null }} />
     </Tabs>
   );
 }

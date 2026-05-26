@@ -16,6 +16,7 @@ import {
   deriveGameOrientation,
 } from "../../lib/onboarding-draft";
 import { usePlayer } from "../../lib/context";
+import { LockupImage } from "../../components/brand/Logo";
 
 export default function Reveal() {
   const router = useRouter();
@@ -85,6 +86,9 @@ export default function Reveal() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <View style={{ alignItems: "center", paddingTop: 32 }}>
+        <LockupImage width={180} variant="horizontal-ink" />
+      </View>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 }}>
         <MicroLabel color={C.lime}>YOUR GAME RATING</MicroLabel>
         <View style={{ height: 14 }} />

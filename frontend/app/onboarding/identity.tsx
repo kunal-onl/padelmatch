@@ -13,6 +13,7 @@ import { SplitCTA, MicroLabel, Body } from "../../lib/ui";
 import { OnboardingHeader } from "../../lib/onboarding-header";
 import { draft, loadDraft, saveDraft } from "../../lib/onboarding-draft";
 import { usePlayer } from "../../lib/context";
+import { LockupImage } from "../../components/brand/Logo";
 
 export default function Identity() {
   const router = useRouter();
@@ -53,10 +54,10 @@ export default function Identity() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={{ alignItems: "center", marginTop: 28, marginBottom: 36 }}>
-            <Text style={styles.wordmark}>PADEL MATCH</Text>
-            <View style={{ height: 6 }} />
+            <LockupImage width={280} variant="horizontal-ink" />
+            <View style={{ height: 12 }} />
             <MicroLabel color={C.lime}>padelmatch.in</MicroLabel>
-            <View style={{ height: 28 }} />
+            <View style={{ height: 22 }} />
             <Text style={styles.subtitle}>JOIN NORTH GOA PADEL</Text>
           </View>
 

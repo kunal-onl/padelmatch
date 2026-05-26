@@ -28,6 +28,13 @@ const ASSETS = {
   appicon_lime:  require("../../assets/brand/appicon-lime.png"),
   avatar_cream:  require("../../assets/brand/avatar-cream.png"),
   avatar_ink:    require("../../assets/brand/avatar-ink.png"),
+  // Official horizontal / stacked lockups shipped Feb 2026.
+  lockup_horizontal_cream:        require("../../assets/brand/lockup-horizontal-cream.png"),
+  lockup_horizontal_ink:          require("../../assets/brand/lockup-horizontal-ink.png"),
+  lockup_horizontal_tagline_ink:  require("../../assets/brand/lockup-horizontal-tagline-ink.png"),
+  lockup_stacked_ink:             require("../../assets/brand/lockup-stacked-ink.png"),
+  wordmark_ink:                   require("../../assets/brand/wordmark-ink.png"),
+  wordmark_blue:                  require("../../assets/brand/wordmark-blue.png"),
 };
 
 export type MarkVariant = "cream" | "ink" | "white";
@@ -153,6 +160,75 @@ export function Lockup({
           </Text>
         )}
       </View>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  LockupImage — uses the OFFICIAL PNG lockup artwork from the brand
+//  kit (shipped Feb 2026). Prefer this over the type-set `<Lockup>`
+//  when you want pixel-accurate brand consistency. The mark + wordmark
+//  are pre-laid-out by the brand designer.
+//
+//  Variants and aspect ratios (height = width / aspect):
+//    horizontal-cream         3.125  (mark + PADEL MATCH on cream)
+//    horizontal-ink           3.125  (mark + PADEL MATCH on ink/dark)
+//    horizontal-tagline-ink   2.381  (above + "FIND THE PERFECT MATCH.")
+//    stacked-ink              2.381  (mark above wordmark, ink)
+//    wordmark-ink             3.030  (wordmark only, ink colour)
+//    wordmark-blue            3.030  (wordmark only, blue colour)
+//
+//  Usage:
+//    <LockupImage width={220} variant="horizontal-ink" />
+// ─────────────────────────────────────────────────────────────────────
+
+export type LockupVariant =
+  | "horizontal-cream"
+  | "horizontal-ink"
+  | "horizontal-tagline-ink"
+  | "stacked-ink"
+  | "wordmark-ink"
+  | "wordmark-blue";
+
+const LOCKUP_ASSETS: Record<LockupVariant, any> = {
+  "horizontal-cream": ASSETS.lockup_horizontal_cream,
+  "horizontal-ink": ASSETS.lockup_horizontal_ink,
+  "horizontal-tagline-ink": ASSETS.lockup_horizontal_tagline_ink,
+  "stacked-ink": ASSETS.lockup_stacked_ink,
+  "wordmark-ink": ASSETS.wordmark_ink,
+  "wordmark-blue": ASSETS.wordmark_blue,
+};
+
+const LOCKUP_ASPECT: Record<LockupVariant, number> = {
+  "horizontal-cream": 3.125,
+  "horizontal-ink": 3.125,
+  "horizontal-tagline-ink": 2.381,
+  "stacked-ink": 2.381,
+  "wordmark-ink": 3.030,
+  "wordmark-blue": 3.030,
+};
+
+export function LockupImage({
+  width = 220,
+  variant = "horizontal-cream",
+  style,
+  wrapperStyle,
+}: {
+  /** Logo width in px. Height is derived from the official aspect ratio. */
+  width?: number;
+  variant?: LockupVariant;
+  style?: StyleProp<ImageStyle>;
+  wrapperStyle?: StyleProp<ViewStyle>;
+}) {
+  const aspect = LOCKUP_ASPECT[variant];
+  const height = width / aspect;
+  return (
+    <View style={wrapperStyle}>
+      <Image
+        source={LOCKUP_ASSETS[variant]}
+        accessibilityLabel="PadelMatch logo"
+        style={[{ width, height, resizeMode: "contain" }, style]}
+      />
     </View>
   );
 }

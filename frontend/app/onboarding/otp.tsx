@@ -13,6 +13,7 @@ import { C, F, BORDER } from "../../lib/theme";
 import { SplitCTA, MicroLabel, Body, Heading } from "../../lib/ui";
 import { OnboardingHeader } from "../../lib/onboarding-header";
 import { draft, loadDraft, saveDraft } from "../../lib/onboarding-draft";
+import { LockupImage } from "../../components/brand/Logo";
 
 const BASE = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api`;
 
@@ -97,6 +98,9 @@ export default function Otp() {
         style={{ flex: 1 }}
       >
         <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+          <View style={{ alignItems: "center", marginBottom: 18 }}>
+            <LockupImage width={200} variant="horizontal-ink" />
+          </View>
           <Heading size={22} color={C.white}>VERIFY YOUR WHATSAPP</Heading>
           <Body size={12} color="rgba(255,255,255,0.7)" style={{ marginTop: 8 }}>
             We&apos;ll send a 6-digit code to your WhatsApp. You must verify to join the community.

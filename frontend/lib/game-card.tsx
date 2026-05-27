@@ -1,50 +1,108 @@
-// Reusable GameCard for Home + Games feed.
+// Reusable Game Card with 5-state visual variants per Feb 2026 spec.
+//
+// FORMING:   blue top accent, "FORMING" chip
+// CONFIRMED: lime top accent, "CONFIRMED" chip
+// BOOKED:    lime top accent, "BOOKED ✓" chip
+// COMPLETED: grey top accent, "HOW DID IT GO?" chip
+// SCORED:    grey top accent, "SCORED" chip
+// CANCELLED: coral top accent, "CANCELLED" chip, greyed out
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { C, F, BORDER } from "./theme";
-import { formatDate } from "./utils";
+import { Avatar } from "./ui";
+
+type StateVisual = { accent: string; chipBg: string; chipFg: string; chipText: string };
+
+const STATE_VISUALS: Record<string, StateVisual> = {
+  FORMING:   { accent: C.blue,   chipBg: C.blue,   chipFg: C.white, chipText: "FORMING" },
+  CONFIRMED: { accent: C.lime,   chipBg: C.lime,   chipFg: C.ink,   chipText: "CONFIRMED" },
+  BOOKED:    { accent: C.lime,   chipBg: C.ink,    chipFg: C.lime,  chipText: "BOOKED ✓" },
+  COMPLETED: { accent: C.grey,   chipBg: C.cream,  chipFg: C.ink,   chipText: "HOW DID IT GO?" },
+  SCORED:    { accent: C.grey,   chipBg: C.ink,    chipFg: C.white, chipText: "SCORED" },
+  CANCELLED: { accent: C.coral,  chipBg: C.coral,  chipFg: C.white, chipText: "CANCELLED" },
+};
+
+function getVisual(status?: string): StateVisual {
+  return STATE_VISUALS[String(status || "FORMING").toUpperCase()] || STATE_VISUALS.FORMING;
+}
 
 export function GameCard({
   game,
-  venueName,
+  venue,
+  players,
   onPress,
-  badge,
   testID,
 }: {
   game: any;
-  venueName: string;
+  venue: any;
+  players: Record<string, any>;
   onPress: () => void;
-  badge?: string | null;
   testID?: string;
 }) {
-  const spotsLeft = 4 - (game.players?.length ?? 0);
+  const visual = getVisual(game.status);
+  const isCancelled = game.status === "CANCELLED";
+  const isGameType = (game.gameType || "competitive") as "competitive" | "social";
+
+  const dateLabel = (() => {
+    const d = new Date(game.date);
+    return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+  })();
+
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.wrap} testID={testID}>
-      <View style={styles.band}>
-        <Text style={styles.bandText}>{venueName.toUpperCase()}</Text>
-        {badge ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>⚡ {badge}</Text>
+    <TouchableOpacity
+      testID={testID}
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={[styles.card, isCancelled && { opacity: 0.55 }]}
+    >
+      <View style={[styles.accent, { backgroundColor: visual.accent }]} />
+      <View style={{ padding: 14 }}>
+        <View style={styles.headerRow}>
+          <Text style={styles.venue} numberOfLines={1}>
+            {venue?.name?.toUpperCase() || "VENUE"} · {venue?.area?.toUpperCase() || ""}
+          </Text>
+          <View style={[styles.chip, { backgroundColor: visual.chipBg, borderColor: C.ink }]}>
+            <Text style={[styles.chipText, { color: visual.chipFg }]}>{visual.chipText}</Text>
           </View>
-        ) : null}
-      </View>
-      <View style={styles.body}>
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-          <Text style={styles.date}>{formatDate(game.date)}</Text>
-          <Text style={styles.dot}> · </Text>
-          <Text style={styles.time}>{game.startTime}–{game.endTime}</Text>
         </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View style={styles.skillChip}>
-            <Text style={styles.skillLabel}>{game.skillLabel.toUpperCase()}</Text>
-            <Text style={styles.skillRange}>{game.skillLevelMin.toFixed(1)}–{game.skillLevelMax.toFixed(1)}</Text>
+
+        <Text style={styles.when}>
+          {dateLabel} · {game.startTime}–{game.endTime}
+        </Text>
+
+        <View style={styles.metaRow}>
+          <Text style={styles.skill}>{game.skillLabel.toUpperCase()} · {game.skillLevelMin}–{game.skillLevelMax}</Text>
+          <View
+            style={[
+              styles.typeChip,
+              isGameType === "social"
+                ? { backgroundColor: C.cream, borderColor: C.ink }
+                : { backgroundColor: C.ink, borderColor: C.ink },
+            ]}
+          >
+            <Text
+              style={[
+                styles.typeChipText,
+                { color: isGameType === "social" ? C.grey : C.lime },
+              ]}
+            >
+              {isGameType.toUpperCase()}
+            </Text>
           </View>
-          <View style={styles.spots}>
-            <Text style={styles.spotsValue}>{spotsLeft}</Text>
-            <Text style={styles.spotsLabel}>SPOTS</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color={C.ink} />
+        </View>
+
+        <View style={styles.playersRow}>
+          {(game.players || []).slice(0, 4).map((pid: string) => (
+            <Avatar key={pid} name={players[pid]?.name || pid} size={26} style={{ marginRight: -6 }} />
+          ))}
+          {Array.from({ length: Math.max(0, 4 - (game.players?.length || 0)) }).map((_, i) => (
+            <View key={`empty-${i}`} style={styles.emptySlot} />
+          ))}
+          <Text style={styles.openSpots}>
+            {game.status === "FORMING"
+              ? `${4 - (game.players?.length || 0)} OPEN`
+              : `${game.players?.length || 0}/4`}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -52,24 +110,29 @@ export function GameCard({
 }
 
 const styles = StyleSheet.create({
-  wrap: { backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink, marginBottom: 12 },
-  band: {
-    backgroundColor: C.blue,
-    paddingHorizontal: 12, paddingVertical: 8,
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    borderBottomWidth: BORDER, borderBottomColor: C.ink,
+  card: {
+    backgroundColor: C.white,
+    borderWidth: BORDER, borderColor: C.ink,
+    marginBottom: 12,
   },
-  bandText: { fontFamily: F.ub900, color: C.white, fontSize: 13, letterSpacing: -0.3 },
-  badge: { backgroundColor: C.lime, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: C.ink },
-  badgeText: { fontFamily: F.ub900, fontSize: 9, color: C.ink, letterSpacing: 0.4 },
-  body: { padding: 14 },
-  date: { fontFamily: F.mono, color: C.ink, fontSize: 11 },
-  dot: { fontFamily: F.mono, color: C.grey },
-  time: { fontFamily: F.mono, color: C.ink, fontSize: 11, letterSpacing: 0.4 },
-  skillChip: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: C.cream, borderWidth: BORDER, borderColor: C.ink },
-  skillLabel: { fontFamily: F.ub700, fontSize: 9, color: C.ink, letterSpacing: 1 },
-  skillRange: { fontFamily: F.mono, fontSize: 10, color: C.ink2, marginTop: 1 },
-  spots: { alignItems: "center" },
-  spotsValue: { fontFamily: F.ub900, fontSize: 28, color: C.ink, letterSpacing: -1, lineHeight: 30 },
-  spotsLabel: { fontFamily: F.mono, fontSize: 8, color: C.grey, letterSpacing: 1.2 },
+  accent: { height: 4 },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  venue: { fontFamily: F.ub900, fontSize: 13, color: C.ink, letterSpacing: -0.3, flex: 1, marginRight: 8 },
+  chip: { paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1 },
+  chipText: { fontFamily: F.ub900, fontSize: 9, letterSpacing: 1 },
+  when: { fontFamily: F.mono, fontSize: 11, color: C.grey, letterSpacing: 1.2, marginTop: 8 },
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10 },
+  skill: { fontFamily: F.mono, fontSize: 10, color: C.ink, letterSpacing: 1 },
+  typeChip: { paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
+  typeChipText: { fontFamily: F.ub900, fontSize: 8, letterSpacing: 1 },
+  playersRow: { flexDirection: "row", alignItems: "center", marginTop: 14 },
+  emptySlot: {
+    width: 26, height: 26,
+    borderWidth: 1.5, borderStyle: "dashed", borderColor: C.grey,
+    marginRight: -6, backgroundColor: "transparent",
+  },
+  openSpots: {
+    fontFamily: F.mono, fontSize: 10, color: C.grey, letterSpacing: 1.2,
+    marginLeft: 12,
+  },
 });

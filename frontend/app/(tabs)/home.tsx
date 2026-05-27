@@ -18,17 +18,19 @@ export default function Home() {
   const [venues, setVenues] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
+  const [pending, setPending] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [r, v, ps, ms] = await Promise.all([
+      const [r, v, ps, ms, pc] = await Promise.all([
         api.recommendations(5),
         api.listVenues(),
         api.listPlayers(),
         api.listMatches(player?.id, 5),
+        api.pendingCompletion(),
       ]);
-      setRecs(r); setVenues(v); setPlayers(ps); setMatches(ms);
+      setRecs(r); setVenues(v); setPlayers(ps); setMatches(ms); setPending(pc);
     } catch {}
   }, [player?.id]);
 
@@ -72,6 +74,70 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.ink} />}
       >
+        {/* Post-match prompt cards — surface above all content for any of
+            my BOOKED games that have just transitioned to COMPLETED. */}
+        {pending
+          .filter((g) => !(g.promptDismissedBy || []).includes(player.id))
+          .filter((g) => {
+            const scored = (g.scoresSubmittedBy || []).includes(player.id);
+            const reflected = (g.reflectionsBy || []).includes(player.id);
+            const rated = (g.peerRatingsBy || []).includes(player.id);
+            return !(scored && reflected && rated);
+          })
+          .map((g) => {
+            const v = venuesById[g.venueId];
+            const dateLabel = (() => {
+              try { return new Date(g.date).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }).toUpperCase(); } catch { return g.date; }
+            })();
+            const scored = (g.scoresSubmittedBy || []).includes(player.id);
+            const reflected = (g.reflectionsBy || []).includes(player.id);
+            const rated = (g.peerRatingsBy || []).includes(player.id);
+            const row = (label: string, done: boolean, href: string, tid: string) => (
+              <TouchableOpacity
+                key={label}
+                testID={tid}
+                onPress={() => router.push(href)}
+                style={pmStyles.row}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={done ? "checkmark-circle" : "ellipse-outline"}
+                  size={18}
+                  color={done ? C.lime : "rgba(255,255,255,0.55)"}
+                />
+                <Text style={[pmStyles.rowText, done && { color: "rgba(255,255,255,0.55)", textDecorationLine: "line-through" }]}>
+                  {label}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.55)" />
+              </TouchableOpacity>
+            );
+            return (
+              <View key={g.id} style={pmStyles.card} testID={`postmatch-prompt-${g.id}`}>
+                <View style={pmStyles.leftAccent} />
+                <View style={{ flex: 1, padding: 16 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <Text style={pmStyles.title}>HOW DID IT GO?</Text>
+                    <TouchableOpacity
+                      testID={`postmatch-dismiss-${g.id}`}
+                      onPress={async () => {
+                        try { await api.dismissPrompt(g.id, true); load(); } catch {}
+                      }}
+                    >
+                      <Text style={pmStyles.dismiss}>LATER</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={pmStyles.meta}>
+                    {(v?.name || "VENUE").toUpperCase()} · {dateLabel} · {g.startTime}–{g.endTime}
+                  </Text>
+                  <View style={{ height: 12 }} />
+                  {row("ENTER SCORES",      scored,    `/score/${g.matchId || g.id}?gameId=${g.id}`, `pm-scores-${g.id}`)}
+                  {row("SELF-REFLECT",      reflected, `/reflect/${g.id}`,                            `pm-reflect-${g.id}`)}
+                  {row("RATE YOUR PARTNERS", rated,    `/feedback/${g.id}`,                           `pm-rate-${g.id}`)}
+                </View>
+              </View>
+            );
+          })}
+
         {/* Stat strip */}
         <View style={styles.statStrip}>
           <StatChip bg={C.ink} valueColor={C.lime} value={player.gameRating.toFixed(1)} label="RATING" testID="stat-rating" />
@@ -100,8 +166,8 @@ export default function Home() {
                 key={r.game.id}
                 testID={`rec-card-${r.game.id}`}
                 game={r.game}
-                venueName={venuesById[r.game.venueId]?.name || ""}
-                badge={r.label}
+                venue={venuesById[r.game.venueId]}
+                players={playersById}
                 onPress={() => router.push(`/games/${r.game.id}`)}
               />
             ))
@@ -188,4 +254,26 @@ const styles = StyleSheet.create({
   resultScore: { fontFamily: F.mono, fontSize: 13, color: C.ink, marginHorizontal: 8 },
   resultBadge: { paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: C.ink },
   resultBadgeText: { fontFamily: F.ub900, fontSize: 9, color: C.white, letterSpacing: 0.6 },
+});
+
+const pmStyles = StyleSheet.create({
+  card: {
+    flexDirection: "row",
+    backgroundColor: C.ink,
+    marginHorizontal: 16, marginTop: 14,
+    borderWidth: BORDER, borderColor: C.ink,
+  },
+  leftAccent: { width: 4, backgroundColor: C.lime },
+  title: { fontFamily: F.ub700, fontSize: 14, color: C.white, letterSpacing: 0.5 },
+  dismiss: { fontFamily: F.mono, fontSize: 9, color: "rgba(255,255,255,0.55)", letterSpacing: 1.4 },
+  meta: { fontFamily: F.mono, fontSize: 10, color: "rgba(255,255,255,0.7)", letterSpacing: 1.2, marginTop: 6 },
+  row: {
+    flexDirection: "row", alignItems: "center",
+    paddingVertical: 10,
+    borderTopWidth: 1, borderColor: "rgba(255,255,255,0.15)",
+  },
+  rowText: {
+    flex: 1, marginLeft: 10,
+    fontFamily: F.ub700, fontSize: 12, color: C.white, letterSpacing: 0.6,
+  },
 });

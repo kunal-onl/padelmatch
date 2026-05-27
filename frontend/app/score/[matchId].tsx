@@ -20,6 +20,9 @@ export default function ScoreEntry() {
   const [venue, setVenue] = useState<any>(null);
   const [playersById, setPlayersById] = useState<Record<string, any>>({});
   const [sets, setSets] = useState<Sets>([{ a: "", b: "" }, { a: "", b: "" }]);
+  const [gameType, setGameType] = useState<"social" | "competitive">("competitive");
+  const [game, setGame] = useState<any>(null);
+  const [attendance, setAttendance] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     const m = await api.getMatch(String(matchId));
@@ -29,6 +32,17 @@ export default function ScoreEntry() {
     setPlayersById(Object.fromEntries(ps.map((x: any) => [x.id, x])));
     if (m.sets?.length) {
       setSets(m.sets.map((s: any) => ({ a: String(s.pairA), b: String(s.pairB) })));
+    }
+    // Pull linked game so we can show + override its gameType.
+    if (m.gameId) {
+      try {
+        const g = await api.getGame(m.gameId);
+        setGame(g);
+        setGameType((g.gameType || "competitive") as "social" | "competitive");
+        const att: Record<string, boolean> = {};
+        (g.players || []).forEach((pid: string) => { att[pid] = true; });
+        setAttendance(att);
+      } catch {}
     }
   }, [matchId]);
 
@@ -54,9 +68,17 @@ export default function ScoreEntry() {
     if (!result.winner) return Alert.alert("Add a third set", "Sets are tied — add a tiebreak set.");
     try {
       const data = sets.filter((s) => s.a !== "" && s.b !== "").map((s) => ({ pairA: parseInt(s.a, 10), pairB: parseInt(s.b, 10) }));
-      const res = await api.enterScore(match.id, { sets: data, scoreEnteredBy: player.id });
-      const myDelta = res.deltas[player.id];
-      Alert.alert("Score saved", `Your rating ${myDelta?.delta >= 0 ? "rose" : "fell"} by ${Math.abs(myDelta?.delta || 0).toFixed(2)}.`);
+      const res = await api.enterScore(match.id, { sets: data, scoreEnteredBy: player.id, gameType });
+      // Persist attendance for the linked game (if any).
+      if (game?.id) {
+        try { await api.submitAttendance(game.id, attendance); } catch {}
+      }
+      const myDelta = res.deltas?.[player.id];
+      if (gameType === "competitive" && myDelta) {
+        Alert.alert("Score saved", `Your rating ${myDelta.delta >= 0 ? "rose" : "fell"} by ${Math.abs(myDelta.delta || 0).toFixed(2)}.`);
+      } else {
+        Alert.alert("Score saved", gameType === "social" ? "Recorded as a social game — ratings unchanged." : "Score recorded.");
+      }
       router.back();
     } catch (e: any) {
       Alert.alert("Could not save", e.message ?? "Try again");
@@ -79,6 +101,66 @@ export default function ScoreEntry() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         <Text style={styles.heading}>HOW DID YOUR GAME GO?</Text>
         <Text style={styles.sub}>{venue.name.toUpperCase()} · {formatDate(match.date)}</Text>
+
+        {/* Game-type override — defaults to the linked Game's flag. */}
+        <MicroLabel style={{ marginTop: 16, marginBottom: 8 }}>THIS WAS A</MicroLabel>
+        <View style={styles.gtRow}>
+          <TouchableOpacity
+            testID="score-gameType-social"
+            onPress={() => setGameType("social")}
+            style={[styles.gtBtn, { backgroundColor: gameType === "social" ? C.purple : C.white }]}
+          >
+            <Text style={[styles.gtText, { color: gameType === "social" ? C.white : C.ink }]}>
+              SOCIAL {gameType === "social" ? "✓" : ""}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="score-gameType-competitive"
+            onPress={() => setGameType("competitive")}
+            style={[styles.gtBtn, { backgroundColor: gameType === "competitive" ? C.blue : C.white }]}
+          >
+            <Text style={[styles.gtText, { color: gameType === "competitive" ? C.white : C.ink }]}>
+              COMPETITIVE {gameType === "competitive" ? "✓" : ""}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Attendance — only when we have a linked Game */}
+        {game?.players && (
+          <View style={{ marginTop: 16 }}>
+            <MicroLabel style={{ marginBottom: 8 }}>DID ALL 4 PLAYERS SHOW UP?</MicroLabel>
+            <View style={styles.attRow}>
+              {game.players.map((pid: string) => {
+                const present = attendance[pid] !== false;
+                return (
+                  <TouchableOpacity
+                    key={pid}
+                    testID={`attendance-${pid}`}
+                    onPress={() => setAttendance((s) => ({ ...s, [pid]: !present }))}
+                    style={[
+                      styles.attBtn,
+                      present
+                        ? { backgroundColor: C.lime }
+                        : { backgroundColor: C.coral, borderColor: C.coral },
+                    ]}
+                  >
+                    <Ionicons
+                      name={present ? "checkmark-circle" : "close-circle"}
+                      size={14}
+                      color={present ? C.ink : C.white}
+                    />
+                    <Text style={[styles.attText, { color: present ? C.ink : C.white }]}>
+                      {(playersById[pid]?.name || pid).split(" ")[0].toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Body size={10} color={C.grey} style={{ marginTop: 6 }}>
+              Tap to mark a player as a no-show.
+            </Body>
+          </View>
+        )}
 
         <View style={styles.panels}>
           <Panel
@@ -168,4 +250,14 @@ const styles = StyleSheet.create({
     fontFamily: F.mono, fontSize: 26, color: C.ink, textAlign: "center",
   },
   addThird: { marginTop: 18, paddingVertical: 14, alignItems: "center", borderWidth: BORDER, borderColor: C.ink, backgroundColor: C.white },
+  gtRow: { flexDirection: "row", gap: 8 },
+  gtBtn: { flex: 1, paddingVertical: 12, alignItems: "center", borderWidth: BORDER, borderColor: C.ink },
+  gtText: { fontFamily: F.ub900, fontSize: 11, letterSpacing: 0.6 },
+  attRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  attBtn: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 10, paddingVertical: 8,
+    borderWidth: BORDER, borderColor: C.ink, backgroundColor: C.cream,
+  },
+  attText: { fontFamily: F.ub700, fontSize: 10, letterSpacing: 0.8, marginLeft: 4 },
 });

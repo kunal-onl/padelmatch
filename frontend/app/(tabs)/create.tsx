@@ -44,6 +44,7 @@ export default function CreateGame() {
   const [duration, setDuration] = useState(90);
   const [minSkill, setMinSkill] = useState(5.0);
   const [maxSkill, setMaxSkill] = useState(7.5);
+  const [gameType, setGameType] = useState<"social" | "competitive">("competitive");
   const [created, setCreated] = useState<any>(null);
 
   useEffect(() => { api.listVenues().then(setVenues).catch(() => {}); }, []);
@@ -67,6 +68,7 @@ export default function CreateGame() {
         venueId, courtId, date, startTime, endTime,
         skillLevelMin: minSkill, skillLevelMax: maxSkill,
         skillLabel: rangeLabel(minSkill, maxSkill),
+        gameType,
       });
       setCreated(g);
       setStep(3);
@@ -96,6 +98,39 @@ export default function CreateGame() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {step === 1 && (
           <>
+            <MicroLabel style={{ marginBottom: 8 }}>THIS GAME IS</MicroLabel>
+            <View style={styles.gameTypeRow}>
+              <TouchableOpacity
+                testID="create-gameType-social"
+                onPress={() => setGameType("social")}
+                style={[
+                  styles.gameTypeBtn,
+                  { backgroundColor: gameType === "social" ? C.purple : C.white },
+                ]}
+              >
+                <Text style={[styles.gameTypeText, { color: gameType === "social" ? C.white : C.ink }]}>
+                  SOCIAL {gameType === "social" ? "✓" : ""}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="create-gameType-competitive"
+                onPress={() => setGameType("competitive")}
+                style={[
+                  styles.gameTypeBtn,
+                  { backgroundColor: gameType === "competitive" ? C.blue : C.white },
+                ]}
+              >
+                <Text style={[styles.gameTypeText, { color: gameType === "competitive" ? C.white : C.ink }]}>
+                  COMPETITIVE {gameType === "competitive" ? "✓" : ""}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Body size={10} color={C.grey} style={{ marginTop: 6, marginBottom: 16 }}>
+              {gameType === "social"
+                ? "Scores recorded · rating unaffected"
+                : "Scores affect your skill rating"}
+            </Body>
+
             <MicroLabel style={{ marginBottom: 8 }}>WHERE</MicroLabel>
             {venues.map((v) => {
               const selected = v.id === venueId;
@@ -255,4 +290,10 @@ const styles = StyleSheet.create({
   previewDate: { fontFamily: F.mono, fontSize: 12, color: C.ink },
   previewSkill: { fontFamily: F.ub700, fontSize: 11, color: C.ink, marginTop: 6, letterSpacing: 0.6 },
   previewLink: { fontFamily: F.mono, fontSize: 11, color: C.blue, marginTop: 8 },
+  gameTypeRow: { flexDirection: "row", gap: 8 },
+  gameTypeBtn: {
+    flex: 1, paddingVertical: 14, alignItems: "center",
+    borderWidth: BORDER, borderColor: C.ink,
+  },
+  gameTypeText: { fontFamily: F.ub900, fontSize: 12, letterSpacing: 0.6 },
 });

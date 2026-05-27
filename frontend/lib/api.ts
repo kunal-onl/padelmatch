@@ -52,6 +52,18 @@ export const api = {
     req("/games", { method: "POST", body: JSON.stringify(data) }),
   joinGame: (id: string) => req(`/games/${id}/join`, { method: "POST" }),
   leaveGame: (id: string) => req(`/games/${id}/leave`, { method: "POST" }),
+  bookGame: (id: string, hudleBookingUrl: string) =>
+    req(`/games/${id}/book`, { method: "PATCH", body: JSON.stringify({ hudleBookingUrl }) }),
+  cancelGame: (id: string) => req(`/games/${id}/cancel`, { method: "POST" }),
+  pendingCompletion: () => req(`/games/pending-completion`),
+  dismissPrompt: (id: string, dismiss = true) =>
+    req(`/games/${id}/dismiss-prompt`, { method: "POST", body: JSON.stringify({ dismiss }) }),
+  submitReflection: (id: string, text: string, focusAreas: string[]) =>
+    req(`/games/${id}/reflect`, { method: "POST", body: JSON.stringify({ text, focusAreas }) }),
+  submitPeerRatings: (id: string, ratings: Record<string, Record<string, number>>) =>
+    req(`/games/${id}/peer-ratings`, { method: "POST", body: JSON.stringify({ ratings }) }),
+  submitAttendance: (id: string, attendance: Record<string, boolean>) =>
+    req(`/games/${id}/attendance`, { method: "POST", body: JSON.stringify({ attendance }) }),
 
   // recommendations / leaderboard
   recommendations: (limit = 5) => req(`/recommendations?limit=${limit}`),

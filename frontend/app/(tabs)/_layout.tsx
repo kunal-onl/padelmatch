@@ -10,8 +10,8 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 const TAB_META: Record<string, { icon: IconName; label: string; testID: string }> = {
   home: { icon: "home", label: "HOME", testID: "tab-home" },
-  games: { icon: "tennisball-outline", label: "GAMES", testID: "tab-games" },
-  create: { icon: "add", label: "CREATE", testID: "tab-create" },
+  players: { icon: "people-outline", label: "PLAYERS", testID: "tab-players" },
+  games: { icon: "tennisball", label: "GAMES", testID: "tab-games" },
   courts: { icon: "grid-outline", label: "COURTS", testID: "tab-courts" },
   profile: { icon: "person-circle-outline", label: "PROFILE", testID: "tab-profile" },
 };
@@ -24,7 +24,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         const meta = TAB_META[route.name];
         if (!meta) return null;
         const focused = state.index === index;
-        const isCenter = route.name === "create";
+        const isCenter = route.name === "games";
 
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -41,8 +41,11 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               style={styles.centerWrap}
             >
               <View style={styles.centerBtn}>
-                <Ionicons name="add" size={32} color={C.ink} />
+                <Ionicons name="tennisball" size={30} color={C.ink} />
               </View>
+              <Text style={[styles.centerLabel, { color: focused ? C.lime : "rgba(255,255,255,0.55)" }]}>
+                GAMES
+              </Text>
             </TouchableOpacity>
           );
         }
@@ -77,11 +80,12 @@ export default function TabsLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen name="home" />
+      <Tabs.Screen name="players" />
       <Tabs.Screen name="games" />
-      <Tabs.Screen name="create" />
       <Tabs.Screen name="courts" />
       <Tabs.Screen name="profile" />
-      {/* Leaderboard route is preserved but hidden from the tab bar. */}
+      {/* Hidden routes — still navigable, just not in the tab bar. */}
+      <Tabs.Screen name="create" options={{ href: null }} />
       <Tabs.Screen name="leaderboard" options={{ href: null }} />
     </Tabs>
   );
@@ -99,10 +103,11 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 6 },
   label: { fontFamily: F.ub700, fontSize: 9, letterSpacing: 1, marginTop: 4 },
-  centerWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: -22 },
+  centerWrap: { flex: 1, alignItems: "center", justifyContent: "flex-start", marginTop: -22 },
   centerBtn: {
     width: 60, height: 60, backgroundColor: C.lime,
     borderWidth: BORDER, borderColor: C.ink,
     alignItems: "center", justifyContent: "center",
   },
+  centerLabel: { fontFamily: F.ub700, fontSize: 9, letterSpacing: 1, marginTop: 6 },
 });

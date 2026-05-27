@@ -144,7 +144,24 @@ class Game(BaseModel):
     skillLevelMax: float
     skillLabel: str
     players: List[str]
-    status: str = "open"  # open | full | played | cancelled
+    # 5-state machine (Feb 2026 spec):
+    #   FORMING → CONFIRMED → BOOKED → COMPLETED → SCORED
+    #                                            ↘ CANCELLED
+    status: str = "FORMING"
+    gameType: str = "competitive"  # competitive | social
+    hudleBookingUrl: Optional[str] = None
+    cancelledBy: Optional[str] = None
+    cancelledAt: Optional[str] = None
+    completedAt: Optional[str] = None
+    bookedAt: Optional[str] = None
+    confirmedAt: Optional[str] = None
+    scoredAt: Optional[str] = None
+    # Post-match state — track which players completed which prompts.
+    scoresSubmittedBy: List[str] = []
+    reflectionsBy: List[str] = []
+    peerRatingsBy: List[str] = []
+    promptDismissedBy: List[str] = []
+    attendance: Dict[str, bool] = {}      # pid -> attended?
     shareLink: str = ""
     whatsappText: str = ""
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -320,6 +337,13 @@ async def seed_if_empty():
         # Drop any venues that are no longer in the canonical list.
         await db.venues.delete_many({"id": {"$nin": seed_ids}})
         log.info("Synced %d venues", len(VENUES_SEED))
+
+    # ── Migrate legacy game.status values to the new 5-state machine ──
+    await db.games.update_many({"status": "open"},      {"$set": {"status": "FORMING"}})
+    await db.games.update_many({"status": "full"},      {"$set": {"status": "CONFIRMED"}})
+    await db.games.update_many({"status": "played"},    {"$set": {"status": "COMPLETED"}})
+    await db.games.update_many({"status": "scored"},    {"$set": {"status": "SCORED"}})
+    await db.games.update_many({"status": "cancelled"}, {"$set": {"status": "CANCELLED"}})
 
     if await db.players.count_documents({}) > 0:
         return
@@ -616,14 +640,43 @@ async def list_venues():
     return [clean(v) async for v in db.venues.find({}, {"_id": 0})]
 
 
+def _strip_private_tags(player: dict, viewer_id: Optional[str]) -> dict:
+    """Rule 3b — connection tags/reason are PRIVATE to the author.
+
+    If the viewer is not the player whose `connections` list this is,
+    drop the `tags` and `reason` fields from every connection before
+    returning the doc.
+    """
+    if not isinstance(player, dict):
+        return player
+    if viewer_id and player.get("id") == viewer_id:
+        return player
+    conns = player.get("connections") or []
+    if not conns:
+        return player
+    scrubbed = []
+    for c in conns:
+        if not isinstance(c, dict):
+            scrubbed.append(c); continue
+        cc = {k: v for k, v in c.items() if k not in ("tags", "reason")}
+        scrubbed.append(cc)
+    player = dict(player)
+    player["connections"] = scrubbed
+    return player
+
+
 @api.get("/players")
-async def list_players():
-    return [clean(p) async for p in db.players.find({}, {"_id": 0}).sort("gameRating", -1)]
+async def list_players(x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    return [
+        _strip_private_tags(clean(p), x_player_id)
+        async for p in db.players.find({}, {"_id": 0}).sort("gameRating", -1)
+    ]
 
 
 @api.get("/players/{pid}")
-async def get_player(pid: str):
-    return await get_player_or_404(pid)
+async def get_player(pid: str, x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    p = await get_player_or_404(pid)
+    return _strip_private_tags(p, x_player_id)
 
 
 class PlayerCreate(BaseModel):
@@ -711,9 +764,52 @@ async def list_games(
         q.setdefault("skillLevelMin", {})
         q["skillLevelMin"]["$lte"] = skillMax
     if openOnly:
-        q["status"] = "open"
-    games = [clean(g) async for g in db.games.find(q, {"_id": 0}).sort("date", 1)]
+        # "Open" in the new state machine = still accepting players.
+        q["status"] = {"$in": ["FORMING"]}
+    games = []
+    async for g in db.games.find(q, {"_id": 0}).sort("date", 1):
+        g = await _auto_complete_if_past(g)
+        games.append(clean(g))
     return games
+
+
+@api.get("/games/pending-completion")
+async def games_pending_completion(
+    x_player_id: str = Header(default="kunal", alias="x-player-id"),
+):
+    """Games the caller participated in that have ended but still have
+    outstanding post-match prompts.
+
+    Catches two cases:
+      1) BOOKED games whose endTime has passed — auto-transition to
+         COMPLETED (also creates a Match for score entry).
+      2) Already-COMPLETED / SCORED games where this player still hasn't
+         finished all three post-match prompts (scores, reflection,
+         peer ratings) and hasn't dismissed the card.
+    """
+    out: List[dict] = []
+    q = {"$or": [
+        {"status": "BOOKED"},
+        {"status": {"$in": ["COMPLETED", "SCORED"]}, "players": x_player_id},
+    ]}
+    async for g in db.games.find(q, {"_id": 0}):
+        if g.get("status") == "BOOKED":
+            g = await _auto_complete_if_past(g)
+        if g.get("status") not in ("COMPLETED", "SCORED"):
+            continue
+        if x_player_id not in g.get("players", []):
+            continue
+        if x_player_id in (g.get("promptDismissedBy") or []):
+            continue
+        scored     = x_player_id in (g.get("scoresSubmittedBy") or [])
+        reflected  = x_player_id in (g.get("reflectionsBy") or [])
+        rated      = x_player_id in (g.get("peerRatingsBy") or [])
+        if scored and reflected and rated:
+            continue
+        out.append(clean(g))
+    # Most recently completed first.
+    out.sort(key=lambda g: g.get("completedAt") or "", reverse=True)
+    return out
 
 
 @api.get("/games/{gid}")
@@ -721,7 +817,8 @@ async def get_game(gid: str):
     g = await db.games.find_one({"id": gid}, {"_id": 0})
     if not g:
         raise HTTPException(404, "Game not found")
-    return g
+    g = await _auto_complete_if_past(g)
+    return clean(g)
 
 
 class GameCreate(BaseModel):
@@ -734,6 +831,61 @@ class GameCreate(BaseModel):
     skillLevelMin: float
     skillLevelMax: float
     skillLabel: str
+    gameType: str = "competitive"  # competitive | social
+
+
+# ── Game state helpers ──────────────────────────────────────────────────
+ALLOWED_GAME_STATUSES = {"FORMING", "CONFIRMED", "BOOKED", "COMPLETED", "SCORED", "CANCELLED"}
+
+def _game_end_dt(g: dict) -> Optional[datetime]:
+    try:
+        return datetime.fromisoformat(f"{g['date']}T{g['endTime']}:00")
+    except Exception:
+        return None
+
+async def _auto_complete_if_past(g: dict) -> dict:
+    """If a BOOKED game's endTime is in the past, transition to COMPLETED.
+
+    Also lazily create a Match record (with players split 2/2) so the
+    post-match score screen has a row to write into. The pair assignment
+    can be edited later via the score screen.
+    """
+    if g.get("status") != "BOOKED":
+        return g
+    end = _game_end_dt(g)
+    if end is None or end > datetime.now():
+        return g
+    now = datetime.now(timezone.utc).isoformat()
+    update: Dict[str, Any] = {"status": "COMPLETED", "completedAt": now}
+    # Ensure a match exists for score entry.
+    match_id = g.get("matchId")
+    if not match_id:
+        players = list(g.get("players") or [])
+        # Pad to 4 with empty strings if under-attended.
+        while len(players) < 4:
+            players.append("")
+        match_id = str(uuid.uuid4())
+        match_doc = {
+            "id": match_id,
+            "gameId": g["id"],
+            "venueId": g["venueId"],
+            "courtId": g["courtId"],
+            "date": g["date"],
+            "startTime": g["startTime"],
+            "endTime": g["endTime"],
+            "pairA": players[:2],
+            "pairB": players[2:4],
+            "sets": [],
+            "winner": None,
+            "status": "pending",
+            "gameType": g.get("gameType", "competitive"),
+            "createdAt": now,
+        }
+        await db.matches.insert_one(match_doc)
+        update["matchId"] = match_id
+    await db.games.update_one({"id": g["id"]}, {"$set": update})
+    g.update(update)
+    return g
 
 
 @api.post("/games")
@@ -741,6 +893,8 @@ async def create_game(body: GameCreate):
     venue = await db.venues.find_one({"id": body.venueId}, {"_id": 0})
     if not venue:
         raise HTTPException(400, "Unknown venue")
+    if body.gameType not in ("competitive", "social"):
+        raise HTTPException(400, "gameType must be competitive or social")
     gid = str(uuid.uuid4())
     d = datetime.fromisoformat(body.date).date()
     wa = (
@@ -761,7 +915,8 @@ async def create_game(body: GameCreate):
         skillLevelMax=body.skillLevelMax,
         skillLabel=body.skillLabel,
         players=[body.hostId],
-        status="open",
+        status="FORMING",
+        gameType=body.gameType,
         shareLink=f"padelmatch.in/g/{gid[:6]}",
         whatsappText=wa,
     ).model_dump()
@@ -775,14 +930,22 @@ async def join_game(gid: str, x_player_id: str = Header(default="kunal", alias="
     g = await db.games.find_one({"id": gid}, {"_id": 0})
     if not g:
         raise HTTPException(404, "Game not found")
+    if g.get("status") == "CANCELLED":
+        raise HTTPException(400, "Game cancelled")
     if x_player_id in g["players"]:
         return g
     if len(g["players"]) >= 4:
         raise HTTPException(400, "Game full")
     g["players"].append(x_player_id)
-    if len(g["players"]) >= 4:
-        g["status"] = "full"
-    await db.games.update_one({"id": gid}, {"$set": {"players": g["players"], "status": g["status"]}})
+    # FORMING → CONFIRMED on 4th join.
+    if len(g["players"]) >= 4 and g.get("status") == "FORMING":
+        g["status"] = "CONFIRMED"
+        g["confirmedAt"] = datetime.now(timezone.utc).isoformat()
+    await db.games.update_one(
+        {"id": gid},
+        {"$set": {"players": g["players"], "status": g["status"],
+                  "confirmedAt": g.get("confirmedAt")}},
+    )
     return g
 
 
@@ -794,9 +957,156 @@ async def leave_game(gid: str, x_player_id: str = Header(default="kunal", alias=
     if x_player_id not in g["players"]:
         return g
     g["players"].remove(x_player_id)
-    g["status"] = "open"
-    await db.games.update_one({"id": gid}, {"$set": {"players": g["players"], "status": g["status"]}})
+    # Drop back to FORMING if we dip below 4 players AND haven't been booked.
+    if g.get("status") in ("CONFIRMED",) and len(g["players"]) < 4:
+        g["status"] = "FORMING"
+        g["confirmedAt"] = None
+    await db.games.update_one({"id": gid}, {"$set": {
+        "players": g["players"], "status": g["status"], "confirmedAt": g.get("confirmedAt"),
+    }})
     return g
+
+
+class BookBody(BaseModel):
+    hudleBookingUrl: str
+
+
+@api.patch("/games/{gid}/book")
+async def book_game(gid: str, body: BookBody,
+                    x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    if g.get("hostId") != x_player_id:
+        raise HTTPException(403, "Only the host can book the court")
+    if g.get("status") not in ("CONFIRMED", "FORMING"):
+        raise HTTPException(400, f"Cannot book from status {g.get('status')}")
+    now = datetime.now(timezone.utc).isoformat()
+    upd = {"status": "BOOKED", "hudleBookingUrl": body.hudleBookingUrl, "bookedAt": now}
+    await db.games.update_one({"id": gid}, {"$set": upd})
+    g.update(upd)
+    return g
+
+
+@api.post("/games/{gid}/cancel")
+async def cancel_game(gid: str,
+                      x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    if g.get("hostId") != x_player_id:
+        raise HTTPException(403, "Only the host can cancel")
+    now = datetime.now(timezone.utc).isoformat()
+    upd = {"status": "CANCELLED", "cancelledBy": x_player_id, "cancelledAt": now}
+    await db.games.update_one({"id": gid}, {"$set": upd})
+    g.update(upd)
+    return g
+
+
+class DismissBody(BaseModel):
+    dismiss: bool = True
+
+
+@api.post("/games/{gid}/dismiss-prompt")
+async def dismiss_prompt(gid: str, body: DismissBody,
+                         x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Player chose 'remind me later' — hide the post-match prompt for them
+    until the next app launch (frontend handles re-surfacing)."""
+    if body.dismiss:
+        await db.games.update_one({"id": gid}, {"$addToSet": {"promptDismissedBy": x_player_id}})
+    else:
+        await db.games.update_one({"id": gid}, {"$pull": {"promptDismissedBy": x_player_id}})
+    return {"ok": True}
+
+
+class ReflectionBody(BaseModel):
+    text: str = ""
+    focusAreas: List[str] = []
+
+
+@api.post("/games/{gid}/reflect")
+async def submit_reflection(gid: str, body: ReflectionBody,
+                            x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    if x_player_id not in g.get("players", []):
+        raise HTTPException(403, "Not a participant of this game")
+    entry = {
+        "gameId": gid,
+        "playerId": x_player_id,
+        "text": body.text[:280],
+        "focusAreas": body.focusAreas,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.reflections.insert_one(entry)
+    await db.games.update_one({"id": gid}, {"$addToSet": {"reflectionsBy": x_player_id}})
+    entry.pop("_id", None)
+    return entry
+
+
+class PeerRatingsBody(BaseModel):
+    # ratings: { otherPlayerId: { technique, attack, defence, tactics, partnership } }
+    ratings: Dict[str, Dict[str, int]]
+
+
+# Categories tracked in Player.peerRatings (sum + count averages).
+PEER_RATING_KEYS = ("technique", "offensiveSkill", "defensiveSkill",
+                    "tacticalAbility", "partnershipSkill")
+# Frontend uses friendlier names — map them onto the canonical keys.
+PEER_RATING_ALIASES = {
+    "technique": "technique",
+    "attack": "offensiveSkill",
+    "defence": "defensiveSkill",
+    "defense": "defensiveSkill",
+    "tactics": "tacticalAbility",
+    "partnership": "partnershipSkill",
+}
+
+
+@api.post("/games/{gid}/peer-ratings")
+async def submit_peer_ratings(gid: str, body: PeerRatingsBody,
+                              x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    if x_player_id not in g.get("players", []):
+        raise HTTPException(403, "Not a participant of this game")
+    # Update each rated player's peerRatings sum+count.
+    for other_pid, scores in body.ratings.items():
+        if other_pid == x_player_id or other_pid not in g.get("players", []):
+            continue
+        inc: Dict[str, int] = {}
+        for k, v in (scores or {}).items():
+            canon = PEER_RATING_ALIASES.get(k)
+            if not canon:
+                continue
+            try:
+                iv = max(1, min(5, int(v)))
+            except Exception:
+                continue
+            inc[f"peerRatings.{canon}.sum"] = inc.get(f"peerRatings.{canon}.sum", 0) + iv
+            inc[f"peerRatings.{canon}.count"] = inc.get(f"peerRatings.{canon}.count", 0) + 1
+        if inc:
+            await db.players.update_one({"id": other_pid}, {"$inc": inc})
+    await db.games.update_one({"id": gid}, {"$addToSet": {"peerRatingsBy": x_player_id}})
+    return {"ok": True}
+
+
+class AttendanceBody(BaseModel):
+    attendance: Dict[str, bool]
+
+
+@api.post("/games/{gid}/attendance")
+async def submit_attendance(gid: str, body: AttendanceBody,
+                            x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    if x_player_id not in g.get("players", []):
+        raise HTTPException(403, "Not a participant of this game")
+    await db.games.update_one({"id": gid}, {"$set": {"attendance": body.attendance}})
+    return {"ok": True}
 
 
 @api.get("/recommendations")
@@ -808,7 +1118,7 @@ async def recommendations(x_player_id: str = Header(default="kunal", alias="x-pl
     week = (date.today() + timedelta(days=14)).isoformat()
     out = []
     async for g in db.games.find(
-        {"status": "open", "date": {"$gte": today, "$lte": week}}, {"_id": 0}
+        {"status": "FORMING", "date": {"$gte": today, "$lte": week}}, {"_id": 0}
     ).sort("date", 1):
         if x_player_id in g["players"]:
             continue
@@ -850,6 +1160,7 @@ async def get_match(mid: str):
 class ScoreEntry(BaseModel):
     sets: List[SetScore]
     scoreEnteredBy: str
+    gameType: Optional[str] = None  # override game-level flag (competitive | social)
 
 
 @api.post("/matches/{mid}/score")
@@ -866,24 +1177,54 @@ async def enter_score(mid: str, body: ScoreEntry):
     m["scoreEnteredBy"] = body.scoreEnteredBy
     m["scoredAt"] = datetime.now(timezone.utc).isoformat()
 
-    # Load players, update Elo, persist
-    ids = m["pairA"] + m["pairB"]
-    players = {}
-    async for p in db.players.find({"id": {"$in": ids}}, {"_id": 0}):
-        players[p["id"]] = p
-    deltas = update_elo_for_match(m, players)
-    for pid, p in players.items():
-        await db.players.update_one({"id": pid}, {"$set": {
-            "gameRating": p["gameRating"],
-            "gameRatingPeak": p["gameRatingPeak"],
-            "gameRatingHistory": p["gameRatingHistory"],
-            "gameRatingStatus": p["gameRatingStatus"],
-            "matchesPlayed": p["matchesPlayed"],
-            "wins": p["wins"],
-            "losses": p["losses"],
-        }})
+    # Determine if this is a competitive game (ELO mutates) or social
+    # (record-only, no ELO mutation).
+    game_type = body.gameType
+    linked_game = None
+    if m.get("gameId"):
+        linked_game = await db.games.find_one({"id": m["gameId"]}, {"_id": 0})
+        if linked_game and not game_type:
+            game_type = linked_game.get("gameType", "competitive")
+    if game_type not in ("competitive", "social"):
+        game_type = "competitive"
+    m["gameType"] = game_type
+
+    deltas: Dict[str, Dict[str, float]] = {}
+    if game_type == "competitive":
+        # Load players, update Elo, persist.
+        ids = m["pairA"] + m["pairB"]
+        players = {}
+        async for p in db.players.find({"id": {"$in": ids}}, {"_id": 0}):
+            players[p["id"]] = p
+        deltas = update_elo_for_match(m, players)
+        for pid, p in players.items():
+            await db.players.update_one({"id": pid}, {"$set": {
+                "gameRating": p["gameRating"],
+                "gameRatingPeak": p["gameRatingPeak"],
+                "gameRatingHistory": p["gameRatingHistory"],
+                "gameRatingStatus": p["gameRatingStatus"],
+                "matchesPlayed": p["matchesPlayed"],
+                "wins": p["wins"],
+                "losses": p["losses"],
+            }})
+    else:
+        # Social: bump matchesPlayed + wins/losses tally only.
+        ids = m["pairA"] + m["pairB"]
+        async for p in db.players.find({"id": {"$in": ids}}, {"_id": 0}):
+            won = (m["winner"] == "pairA" and p["id"] in m["pairA"]) or \
+                  (m["winner"] == "pairB" and p["id"] in m["pairB"])
+            inc = {"matchesPlayed": 1, "wins": 1 if won else 0, "losses": 0 if won else 1}
+            await db.players.update_one({"id": p["id"]}, {"$inc": inc})
+
     await db.matches.update_one({"id": mid}, {"$set": m})
-    return {"match": m, "deltas": deltas}
+
+    # Bump the linked Game to SCORED.
+    if linked_game and m.get("scoreEnteredBy"):
+        await db.games.update_one({"id": linked_game["id"]}, {
+            "$set": {"status": "SCORED", "scoredAt": m["scoredAt"], "gameType": game_type},
+            "$addToSet": {"scoresSubmittedBy": body.scoreEnteredBy},
+        })
+    return {"match": m, "deltas": deltas, "gameType": game_type}
 
 
 @api.get("/notifications")

@@ -1604,6 +1604,54 @@ async def dev_seed_community():
     return {"ok": True, "seeded": n}
 
 
+@api.post("/dev/activate-prepared")
+async def dev_activate_prepared():
+    """Flip every 'invited' player who has populated preferences (preferred
+    venues OR ranked days) into the fully-onboarded 'active' state.
+
+    This is a test convenience — it pretends those players completed the
+    onboarding flow + WhatsApp OTP. Reverse with /dev/reset-to-invited.
+
+    Players with empty preferences are left as 'invited' (we have no
+    onboarded data to fake for them). Ghosts are never touched.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    q = {
+        "status": "invited",
+        "$or": [
+            {"preferredVenues": {"$exists": True, "$not": {"$size": 0}}},
+            {"rankedDays":      {"$exists": True, "$not": {"$size": 0}}},
+        ],
+    }
+    upd = {"$set": {
+        "status": "active",
+        "whatsappVerified": True,
+        "whatsappVerifiedAt": now,
+        "onboardingCompletedAt": now,
+        "lastActiveAt": now,
+    }}
+    result = await db.players.update_many(q, upd)
+    return {"ok": True, "activated": result.modified_count}
+
+
+@api.post("/dev/reset-to-invited")
+async def dev_reset_to_invited():
+    """Flip every community 'active' player (except Kunal) back to
+    'invited' status, clearing the WhatsApp-verified timestamps. Use this
+    once real onboardings begin so the dev-activated accounts revert.
+    Kunal stays active because he's the real signed-up host."""
+    community_ids = [s["id"] for s in COMMUNITY_SEED
+                     if s["id"] != "kunal" and s.get("status") == "invited"]
+    upd = {"$set": {
+        "status": "invited",
+        "whatsappVerified": False,
+        "whatsappVerifiedAt": None,
+        "onboardingCompletedAt": None,
+    }}
+    result = await db.players.update_many({"id": {"$in": community_ids}}, upd)
+    return {"ok": True, "reset": result.modified_count}
+
+
 @api.post("/dev/scrub")
 async def dev_scrub():
     """Wipe ALL test / mock / previous data and leave only the real roster.

@@ -1,6 +1,6 @@
 // Own profile — blue hero, large rating, sparkline, radar (simple SVG), stats, history.
 import React, { useCallback, useMemo, useState } from "react";
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, RefreshControl, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Polyline, Polygon, Circle, Line, Text as SvgText } from "react-native-svg";
@@ -184,7 +184,27 @@ export default function Profile() {
         </View>
 
         <View style={{ padding: 16, marginTop: 8 }}>
-          <OutlineButton testID="sign-out" label="SIGN OUT (DEV)" onPress={async () => { await signOut(); router.replace("/onboarding/identity"); }} />
+          <OutlineButton
+            testID="sign-out"
+            label="SIGN OUT"
+            onPress={() => {
+              Alert.alert(
+                "Sign out?",
+                "You'll be returned to the start screen. Your data is safe.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Sign out",
+                    style: "destructive",
+                    onPress: async () => {
+                      await signOut();
+                      router.replace("/onboarding/identity");
+                    },
+                  },
+                ],
+              );
+            }}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

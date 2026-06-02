@@ -1652,6 +1652,176 @@ async def dev_reset_to_invited():
     return {"ok": True, "reset": result.modified_count}
 
 
+@api.post("/dev/populate")
+async def dev_populate():
+    """Fill in the gaps the survey didn't cover with plausible defaults,
+    then create a handful of demo games across every state of the machine
+    so the app is testable end-to-end. Idempotent: safe to call twice."""
+    rng = random.Random(20260528)  # deterministic so reruns are stable
+    now_iso = datetime.now(timezone.utc).isoformat()
+    today = date.today()
+
+    # ── 1) Activate any community member with preferences ──────────────
+    await dev_activate_prepared()
+
+    # ── 2) Fill in missing experience / game-type defaults ─────────────
+    YEARS = ["1to3", "1to3", "3to5", "3to5", "5plus", "under1"]
+    FREQ  = ["weekly", "weekly", "multipleWeekly", "monthly"]
+    COMP  = ["none", "casual", "casual", "regular"]
+    WALL  = ["somewhat", "somewhat", "yes", "no"]
+    GTYPE = [["competitive", "social"], ["competitive"], ["social"], ["competitive", "social"]]
+
+    filled = 0
+    async for p in db.players.find({"status": {"$in": ["active", "invited"]}}, {"_id": 0}):
+        upd: Dict[str, Any] = {}
+        if not p.get("yearsPlayed"):            upd["yearsPlayed"] = rng.choice(YEARS)
+        if not p.get("frequency"):              upd["frequency"] = rng.choice(FREQ)
+        if not p.get("competitiveExperience"):  upd["competitiveExperience"] = rng.choice(COMP)
+        if not p.get("wallControl"):            upd["wallControl"] = rng.choice(WALL)
+        if not p.get("gameTypes"):              upd["gameTypes"] = rng.choice(GTYPE)
+        # rankedTimeBlocks defaults to the rankedDays order if we have it
+        if not p.get("rankedTimeBlocks") and p.get("rankedDays"):
+            upd["rankedTimeBlocks"] = list(p["rankedDays"])
+        # Initial rating estimate (only on first run — gameRating is preserved)
+        if (p.get("gameRating") or 5.0) == 5.0 and not p.get("matchesPlayed"):
+            merged = {**p, **upd}
+            est = compute_initial_rating(merged)
+            upd["gameRating"] = est
+            upd["initialRatingEstimate"] = est
+            upd["gameRatingPeak"] = est
+        if upd:
+            await db.players.update_one({"id": p["id"]}, {"$set": upd})
+            filled += 1
+
+    # ── 3) Build demo games across the state machine ───────────────────
+    # Pull the active community to choose hosts/joiners from.
+    active_ids = [p["id"] async for p in db.players.find(
+        {"status": "active", "communityId": "north-goa-padel"}, {"id": 1}
+    )]
+    venues = [v async for v in db.venues.find({}, {"_id": 0})]
+    venues_by_id = {v["id"]: v for v in venues}
+
+    if await db.games.count_documents({}) > 0:
+        # Already populated — leave existing games alone.
+        return {"ok": True, "filled": filled, "games": 0,
+                "note": "Games already exist; skipped game creation."}
+
+    def pick(n: int, exclude: List[str] = []) -> List[str]:
+        pool = [pid for pid in active_ids if pid not in exclude]
+        rng.shuffle(pool)
+        return pool[:n]
+
+    def at_offset(days: int, h: int, m: int = 0) -> tuple:
+        d = today + timedelta(days=days)
+        return d.isoformat(), f"{h:02d}:{m:02d}"
+
+    GAME_SPECS = [
+        # offset_days, start_h, dur_min, host_pref, venue_id, skill_lo, skill_hi, label, gtype, target_state, num_joined
+        (+2,  18, 90, "abhilaash-s", "round-two",     4.5, 6.5, "INTERMEDIATE",         "competitive", "FORMING",   2),
+        (+3,   8, 90, "ashwin-s",    "sunday-club",   4.0, 6.0, "EARLY RISERS",         "social",      "FORMING",   3),
+        (+5,  19, 90, "teyjas-c",    "jolt-method",   5.0, 7.0, "INT/ADV",              "competitive", "CONFIRMED", 4),
+        (+1,  17, 90, "ishaan-a",    "coplay-assagao",4.5, 6.5, "MIXED LEVELS",         "social",      "BOOKED",    4),
+        (+4,  19, 90, "girish-v",    "sunday-club",   5.5, 7.5, "ADV",                  "competitive", "BOOKED",    4),
+        (-2,  18, 90, "amar-s",      "round-two",     4.5, 6.5, "EVENING MIX",          "competitive", "COMPLETED", 4),
+        (-4,  19, 90, "dinika-t",    "sunday-club",   3.5, 5.5, "BEGINNER FRIENDLY",    "social",      "SCORED",    4),
+        (-8,  18, 90, "abhilaash-s", "round-two",     5.0, 7.0, "FRIDAY NIGHT",         "competitive", "SCORED",    4),
+    ]
+
+    created = 0
+    for (off, sh, dur, host, vid, lo, hi, label, gt, target, joined) in GAME_SPECS:
+        # Skip if host wasn't activated for some reason.
+        if host not in active_ids:
+            continue
+        d, st = at_offset(off, sh)
+        end_dt = datetime.combine(date.fromisoformat(d), datetime.strptime(st, "%H:%M").time()) + timedelta(minutes=dur)
+        et = end_dt.strftime("%H:%M")
+        venue = venues_by_id.get(vid) or venues[0]
+        court_id = venue["courts"][0]["id"]
+        gid = str(uuid.uuid4())
+        players = [host] + pick(joined - 1, exclude=[host])
+        wa = (
+            f"\U0001F3BE Game at {venue['name']}, {venue['area']}\n"
+            f"{date.fromisoformat(d).strftime('%a %d %b')} \u00B7 {st}\u2013{et}\n"
+            f"Level: {label} ({lo}\u2013{hi})\n"
+            f"{4 - len(players)} spot(s) open\n\nJoin: padelmatch.in/g/{gid[:6]}"
+        )
+        # Build doc — set the right state-tracking fields per target.
+        g = {
+            "id": gid, "hostId": host, "venueId": vid, "courtId": court_id,
+            "date": d, "startTime": st, "endTime": et,
+            "skillLevelMin": lo, "skillLevelMax": hi, "skillLabel": label,
+            "players": players,
+            "status": "FORMING", "gameType": gt,
+            "hudleBookingUrl": None, "cancelledBy": None, "cancelledAt": None,
+            "completedAt": None, "bookedAt": None, "confirmedAt": None, "scoredAt": None,
+            "scoresSubmittedBy": [], "reflectionsBy": [], "peerRatingsBy": [],
+            "promptDismissedBy": [], "attendance": {},
+            "shareLink": f"padelmatch.in/g/{gid[:6]}", "whatsappText": wa,
+            "createdAt": now_iso, "matchId": None,
+        }
+        if target in ("CONFIRMED", "BOOKED", "COMPLETED", "SCORED"):
+            g["status"] = "CONFIRMED"
+            g["confirmedAt"] = now_iso
+        if target in ("BOOKED", "COMPLETED", "SCORED"):
+            g["status"] = "BOOKED"
+            g["bookedAt"] = now_iso
+            g["hudleBookingUrl"] = venue.get("hudleUrl") or "https://hudle.in/bookings/demo"
+        if target in ("COMPLETED", "SCORED"):
+            g["status"] = "COMPLETED"
+            g["completedAt"] = now_iso
+            # Create a Match for score entry.
+            match_id = str(uuid.uuid4())
+            g["matchId"] = match_id
+            mdoc = {
+                "id": match_id, "gameId": gid, "venueId": vid, "courtId": court_id,
+                "date": d, "startTime": st, "endTime": et,
+                "pairA": players[:2], "pairB": players[2:4],
+                "sets": [], "winner": None, "status": "pending",
+                "gameType": gt, "createdAt": now_iso,
+            }
+            await db.matches.insert_one(mdoc)
+        await db.games.insert_one(g)
+        created += 1
+
+        # Score the SCORED ones — pick a plausible scoreline + run ELO if competitive.
+        if target == "SCORED" and g["matchId"]:
+            sets = [{"pairA": 6, "pairB": 3}, {"pairA": 6, "pairB": 4}] if rng.random() < 0.6 \
+                else [{"pairA": 4, "pairB": 6}, {"pairA": 6, "pairB": 7}]
+            winner = "pairA" if sum(s["pairA"] > s["pairB"] for s in sets) > 1 else "pairB"
+            mupd = {
+                "sets": sets, "winner": winner, "status": "scored",
+                "scoreEnteredBy": host, "scoredAt": now_iso, "gameType": gt,
+            }
+            await db.matches.update_one({"id": g["matchId"]}, {"$set": mupd})
+            if gt == "competitive":
+                m = {**(await db.matches.find_one({"id": g["matchId"]}, {"_id": 0})), **mupd}
+                players_docs: Dict[str, Any] = {}
+                async for p in db.players.find({"id": {"$in": m["pairA"] + m["pairB"]}}, {"_id": 0}):
+                    players_docs[p["id"]] = p
+                update_elo_for_match(m, players_docs)
+                for pid, p in players_docs.items():
+                    await db.players.update_one({"id": pid}, {"$set": {
+                        "gameRating": p["gameRating"],
+                        "gameRatingPeak": p["gameRatingPeak"],
+                        "gameRatingHistory": p["gameRatingHistory"],
+                        "gameRatingStatus": p["gameRatingStatus"],
+                        "matchesPlayed": p["matchesPlayed"],
+                        "wins": p["wins"],
+                        "losses": p["losses"],
+                    }})
+            else:
+                # Social: bump counts only, leave rating untouched.
+                for pid in g["players"]:
+                    won = (winner == "pairA" and pid in g["players"][:2]) or \
+                          (winner == "pairB" and pid in g["players"][2:4])
+                    await db.players.update_one({"id": pid}, {"$inc": {
+                        "matchesPlayed": 1, "wins": 1 if won else 0, "losses": 0 if won else 1,
+                    }})
+            await db.games.update_one({"id": gid}, {"$set": {"status": "SCORED", "scoredAt": now_iso}})
+
+    return {"ok": True, "filled": filled, "games": created}
+
+
 @api.post("/dev/scrub")
 async def dev_scrub():
     """Wipe ALL test / mock / previous data and leave only the real roster.

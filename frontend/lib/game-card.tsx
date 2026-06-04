@@ -1,11 +1,13 @@
-// Reusable Game Card with 5-state visual variants per Feb 2026 spec.
+// Reusable Game Card with 6-state visual variants per the Game Journey
+// Rework (Feb→Jun 2026 spec):
 //
-// FORMING:   blue top accent, "FORMING" chip
-// CONFIRMED: lime top accent, "CONFIRMED" chip
-// BOOKED:    lime top accent, "BOOKED ✓" chip
-// COMPLETED: grey top accent, "HOW DID IT GO?" chip
-// SCORED:    grey top accent, "SCORED" chip
-// CANCELLED: coral top accent, "CANCELLED" chip, greyed out
+// PLANNING:    blue top accent, "PLANNING" chip — host assembling roster
+// NEEDS_COURT: lime top accent, "NEEDS COURT" chip — full, awaiting book
+// CONFIRMED:   lime top accent, "CONFIRMED ✓" chip — court booked (the
+//              real commitment; previously called BOOKED)
+// PLAYED:      grey top accent, "HOW DID IT GO?" chip — end-time past
+// SCORED:      grey top accent, "SCORED" chip — score entered
+// CANCELLED:   coral top accent, "CANCELLED" chip, greyed out
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { C, F, BORDER } from "./theme";
@@ -14,16 +16,16 @@ import { Avatar } from "./ui";
 type StateVisual = { accent: string; chipBg: string; chipFg: string; chipText: string };
 
 const STATE_VISUALS: Record<string, StateVisual> = {
-  FORMING:   { accent: C.blue,   chipBg: C.blue,   chipFg: C.white, chipText: "FORMING" },
-  CONFIRMED: { accent: C.lime,   chipBg: C.lime,   chipFg: C.ink,   chipText: "CONFIRMED" },
-  BOOKED:    { accent: C.lime,   chipBg: C.ink,    chipFg: C.lime,  chipText: "BOOKED ✓" },
-  COMPLETED: { accent: C.grey,   chipBg: C.cream,  chipFg: C.ink,   chipText: "HOW DID IT GO?" },
-  SCORED:    { accent: C.grey,   chipBg: C.ink,    chipFg: C.white, chipText: "SCORED" },
-  CANCELLED: { accent: C.coral,  chipBg: C.coral,  chipFg: C.white, chipText: "CANCELLED" },
+  PLANNING:    { accent: C.blue,   chipBg: C.blue,   chipFg: C.white, chipText: "PLANNING" },
+  NEEDS_COURT: { accent: C.lime,   chipBg: C.lime,   chipFg: C.ink,   chipText: "NEEDS COURT" },
+  CONFIRMED:   { accent: C.lime,   chipBg: C.ink,    chipFg: C.lime,  chipText: "CONFIRMED ✓" },
+  PLAYED:      { accent: C.grey,   chipBg: C.cream,  chipFg: C.ink,   chipText: "HOW DID IT GO?" },
+  SCORED:      { accent: C.grey,   chipBg: C.ink,    chipFg: C.white, chipText: "SCORED" },
+  CANCELLED:   { accent: C.coral,  chipBg: C.coral,  chipFg: C.white, chipText: "CANCELLED" },
 };
 
 function getVisual(status?: string): StateVisual {
-  return STATE_VISUALS[String(status || "FORMING").toUpperCase()] || STATE_VISUALS.FORMING;
+  return STATE_VISUALS[String(status || "PLANNING").toUpperCase()] || STATE_VISUALS.PLANNING;
 }
 
 export function GameCard({
@@ -99,7 +101,7 @@ export function GameCard({
             <View key={`empty-${i}`} style={styles.emptySlot} />
           ))}
           <Text style={styles.openSpots}>
-            {game.status === "FORMING"
+            {game.status === "PLANNING"
               ? `${4 - (game.players?.length || 0)} OPEN`
               : `${game.players?.length || 0}/4`}
           </Text>

@@ -10,12 +10,14 @@ import { api } from "../../lib/api";
 import { usePlayer } from "../../lib/context";
 import { formatDate } from "../../lib/utils";
 
-const STATE_STEPS = ["FORMING", "CONFIRMED", "BOOKED", "COMPLETED", "SCORED"] as const;
+// Game Journey Rework (Feb 2026): status vocab is PLANNING / NEEDS_COURT /
+// CONFIRMED / PLAYED / SCORED / CANCELLED. CONFIRMED here means "booked".
+const STATE_STEPS = ["PLANNING", "NEEDS_COURT", "CONFIRMED", "PLAYED", "SCORED"] as const;
 const STATE_LABELS: Record<string, string> = {
-  FORMING: "FORMING",
+  PLANNING: "PLANNING",
+  NEEDS_COURT: "NEEDS COURT",
   CONFIRMED: "CONFIRMED",
-  BOOKED: "BOOKED",
-  COMPLETED: "PLAYED",
+  PLAYED: "PLAYED",
   SCORED: "SCORED",
 };
 
@@ -131,7 +133,7 @@ export default function GameDetail() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
-        <StateStrip status={game.status || "FORMING"} />
+        <StateStrip status={game.status || "PLANNING"} />
 
         {/* stat row */}
         <View style={styles.statRow}>
@@ -179,8 +181,8 @@ export default function GameDetail() {
         </View>
 
         <View style={{ marginTop: 18 }}>
-          {/* ── Join / Leave (only when FORMING) ─────────────────────── */}
-          {game.status === "FORMING" && (
+          {/* ── Join / Leave (only when PLANNING — roster open) ──────── */}
+          {game.status === "PLANNING" && (
             isIn ? (
               <SplitCTA testID="leave-game" label="YOU'RE IN  ·  TAP TO LEAVE" onPress={onLeave} filledColor={C.lime} arrowIcon="close" />
             ) : (
@@ -188,8 +190,8 @@ export default function GameDetail() {
             )
           )}
 
-          {/* ── CONFIRMED: host books, others wait ───────────────────── */}
-          {game.status === "CONFIRMED" && isHost && (
+          {/* ── NEEDS_COURT: host books, others wait ─────────────────── */}
+          {game.status === "NEEDS_COURT" && isHost && (
             <View style={styles.actionBlock}>
               <Text style={styles.actionTitle}>COURT NOT YET BOOKED</Text>
               <Body size={11} color={C.grey} style={{ marginTop: 4 }}>
@@ -231,7 +233,7 @@ export default function GameDetail() {
               )}
             </View>
           )}
-          {game.status === "CONFIRMED" && !isHost && (
+          {game.status === "NEEDS_COURT" && !isHost && (
             <View style={styles.actionBlock}>
               <Text style={styles.actionTitle}>WAITING FOR HOST TO BOOK COURT</Text>
               <Body size={11} color={C.grey} style={{ marginTop: 4 }}>
@@ -240,8 +242,8 @@ export default function GameDetail() {
             </View>
           )}
 
-          {/* ── BOOKED: link visible to all ──────────────────────────── */}
-          {game.status === "BOOKED" && (
+          {/* ── CONFIRMED: court booked, link visible to all ─────────── */}
+          {game.status === "CONFIRMED" && (
             <View style={[styles.actionBlock, { backgroundColor: C.ink }]}>
               <Text style={[styles.actionTitle, { color: C.lime }]}>COURT BOOKED ✓</Text>
               <Body size={11} color="rgba(255,255,255,0.7)" style={{ marginTop: 4 }}>
@@ -259,8 +261,8 @@ export default function GameDetail() {
             </View>
           )}
 
-          {/* ── COMPLETED / SCORED ───────────────────────────────────── */}
-          {game.status === "COMPLETED" && isIn && (
+          {/* ── PLAYED / SCORED ──────────────────────────────────────── */}
+          {game.status === "PLAYED" && isIn && (
             <View style={styles.actionBlock}>
               <Text style={styles.actionTitle}>HOW DID IT GO?</Text>
               <Body size={11} color={C.grey} style={{ marginTop: 4 }}>

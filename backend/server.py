@@ -147,7 +147,7 @@ class Game(BaseModel):
     # 5-state machine (Feb 2026 spec):
     #   FORMING → CONFIRMED → BOOKED → COMPLETED → SCORED
     #                                            ↘ CANCELLED
-    status: str = "FORMING"
+    status: str = "PLANNING"
     gameType: str = "competitive"  # competitive | social
     hudleBookingUrl: Optional[str] = None
     cancelledBy: Optional[str] = None
@@ -338,12 +338,60 @@ async def seed_if_empty():
         await db.venues.delete_many({"id": {"$nin": seed_ids}})
         log.info("Synced %d venues", len(VENUES_SEED))
 
-    # ── Migrate legacy game.status values to the new 5-state machine ──
-    await db.games.update_many({"status": "open"},      {"$set": {"status": "FORMING"}})
-    await db.games.update_many({"status": "full"},      {"$set": {"status": "CONFIRMED"}})
-    await db.games.update_many({"status": "played"},    {"$set": {"status": "COMPLETED"}})
-    await db.games.update_many({"status": "scored"},    {"$set": {"status": "SCORED"}})
-    await db.games.update_many({"status": "cancelled"}, {"$set": {"status": "CANCELLED"}})
+    # ── Status migration V1 — Game Journey Rework (Feb 2026) ──────────
+    # Renames game.status to the new 5-state vocab:
+    #   FORMING    → PLANNING       (host assembling)
+    #   CONFIRMED  → NEEDS_COURT    (4 in, not booked yet)
+    #   BOOKED     → CONFIRMED      (booked = the real commitment)
+    #   COMPLETED  → PLAYED         (end-time past)
+    #   SCORED/CANCELLED  unchanged
+    #
+    # ⚠️  Single-pass by ORIGINAL value (do NOT chain renames — the
+    # CONFIRMED string exists in both vocabularies with different
+    # meanings, so chained update_manys would corrupt data).
+    #
+    # Idempotent via the `meta.statusMigrationV1` marker. Pre-migration
+    # snapshot is saved to `games_pre_status_migration_v1` (id+status
+    # only) for recovery.
+    marker = await db.meta.find_one({"_id": "statusMigrationV1"})
+    if not marker:
+        # 1) Backup
+        snapshot = []
+        async for g in db.games.find({}, {"_id": 0, "id": 1, "status": 1}):
+            snapshot.append({"id": g.get("id"), "status": g.get("status")})
+        if snapshot:
+            await db.games_pre_status_migration_v1.delete_many({})
+            await db.games_pre_status_migration_v1.insert_many(snapshot)
+            log.info("statusMigrationV1: backup of %d games written", len(snapshot))
+
+        # 2) Single-pass remap
+        STATUS_REMAP_V1 = {
+            "FORMING":   "PLANNING",
+            "CONFIRMED": "NEEDS_COURT",
+            "BOOKED":    "CONFIRMED",
+            "COMPLETED": "PLAYED",
+            # SCORED / CANCELLED untouched
+            # Also catch any lingering legacy lowercase values
+            "open":      "PLANNING",
+            "full":      "NEEDS_COURT",
+            "played":    "PLAYED",
+            "scored":    "SCORED",
+            "cancelled": "CANCELLED",
+        }
+        renamed = 0
+        for old, new in STATUS_REMAP_V1.items():
+            res = await db.games.update_many(
+                {"status": old},   # guard on the ORIGINAL value
+                {"$set": {"status": new}},
+            )
+            renamed += res.modified_count
+        log.info("statusMigrationV1: remapped %d games", renamed)
+
+        # 3) Marker
+        await db.meta.insert_one({"_id": "statusMigrationV1",
+                                  "appliedAt": datetime.now(timezone.utc).isoformat(),
+                                  "renamed": renamed})
+        log.info("statusMigrationV1: marker set, migration complete")
 
     if await db.players.count_documents({}) > 0:
         return
@@ -789,13 +837,13 @@ async def games_pending_completion(
     """
     out: List[dict] = []
     q = {"$or": [
-        {"status": "BOOKED"},
-        {"status": {"$in": ["COMPLETED", "SCORED"]}, "players": x_player_id},
+        {"status": "CONFIRMED"},
+        {"status": {"$in": ["PLAYED", "SCORED"]}, "players": x_player_id},
     ]}
     async for g in db.games.find(q, {"_id": 0}):
-        if g.get("status") == "BOOKED":
+        if g.get("status") == "CONFIRMED":
             g = await _auto_complete_if_past(g)
-        if g.get("status") not in ("COMPLETED", "SCORED"):
+        if g.get("status") not in ("PLAYED", "SCORED"):
             continue
         if x_player_id not in g.get("players", []):
             continue
@@ -835,7 +883,14 @@ class GameCreate(BaseModel):
 
 
 # ── Game state helpers ──────────────────────────────────────────────────
-ALLOWED_GAME_STATUSES = {"FORMING", "CONFIRMED", "BOOKED", "COMPLETED", "SCORED", "CANCELLED"}
+# Game Journey Rework (Feb 2026): 5-state vocab + internal SCORED.
+#   PLANNING     — host assembling roster (not full)
+#   NEEDS_COURT  — full (4/4) but not yet booked
+#   CONFIRMED    — host has booked the court (Hudle URL on file)
+#   PLAYED       — endTime has passed on a CONFIRMED game
+#   SCORED       — at least one score entered against the spawned Match
+#   CANCELLED    — host cancelled, OR PLANNING/NEEDS_COURT expired unbooked
+ALLOWED_GAME_STATUSES = {"PLANNING", "NEEDS_COURT", "CONFIRMED", "PLAYED", "SCORED", "CANCELLED"}
 
 def _game_end_dt(g: dict) -> Optional[datetime]:
     try:
@@ -844,19 +899,23 @@ def _game_end_dt(g: dict) -> Optional[datetime]:
         return None
 
 async def _auto_complete_if_past(g: dict) -> dict:
-    """If a BOOKED game's endTime is in the past, transition to COMPLETED.
+    """If a CONFIRMED game's endTime is in the past, transition to PLAYED.
 
     Also lazily create a Match record (with players split 2/2) so the
     post-match score screen has a row to write into. The pair assignment
     can be edited later via the score screen.
+
+    Note: this is a belt-and-braces hook. The cascade sweeper (Track D)
+    will be the primary driver of expired transitions.
     """
-    if g.get("status") != "BOOKED":
+    if g.get("status") != "CONFIRMED":
         return g
     end = _game_end_dt(g)
     if end is None or end > datetime.now():
         return g
     now = datetime.now(timezone.utc).isoformat()
-    update: Dict[str, Any] = {"status": "COMPLETED", "completedAt": now}
+    update: Dict[str, Any] = {"status": "PLAYED",
+                              "playedAt": now, "completedAt": now}
     # Ensure a match exists for score entry.
     match_id = g.get("matchId")
     if not match_id:
@@ -915,7 +974,7 @@ async def create_game(body: GameCreate):
         skillLevelMax=body.skillLevelMax,
         skillLabel=body.skillLabel,
         players=[body.hostId],
-        status="FORMING",
+        status="PLANNING",
         gameType=body.gameType,
         shareLink=f"padelmatch.in/g/{gid[:6]}",
         whatsappText=wa,
@@ -937,9 +996,9 @@ async def join_game(gid: str, x_player_id: str = Header(default="kunal", alias="
     if len(g["players"]) >= 4:
         raise HTTPException(400, "Game full")
     g["players"].append(x_player_id)
-    # FORMING → CONFIRMED on 4th join.
-    if len(g["players"]) >= 4 and g.get("status") == "FORMING":
-        g["status"] = "CONFIRMED"
+    # PLANNING → NEEDS_COURT on 4th join (full but unbooked).
+    if len(g["players"]) >= 4 and g.get("status") == "PLANNING":
+        g["status"] = "NEEDS_COURT"
         g["confirmedAt"] = datetime.now(timezone.utc).isoformat()
     await db.games.update_one(
         {"id": gid},
@@ -956,10 +1015,16 @@ async def leave_game(gid: str, x_player_id: str = Header(default="kunal", alias=
         raise HTTPException(404, "Game not found")
     if x_player_id not in g["players"]:
         return g
+    # Game Journey Rework: the host cannot leave their own game — they must
+    # cancel it (which respects the PLAYED/SCORED guard).
+    if g.get("hostId") == x_player_id:
+        raise HTTPException(400, "Host cannot leave their own game — cancel instead.")
     g["players"].remove(x_player_id)
-    # Drop back to FORMING if we dip below 4 players AND haven't been booked.
-    if g.get("status") in ("CONFIRMED",) and len(g["players"]) < 4:
-        g["status"] = "FORMING"
+    # Drop back to PLANNING if we dip below 4 players AND haven't been booked.
+    # A booked game (status=CONFIRMED) stays CONFIRMED on leave; the cascade
+    # may re-open to refill.
+    if g.get("status") in ("NEEDS_COURT",) and len(g["players"]) < 4:
+        g["status"] = "PLANNING"
         g["confirmedAt"] = None
     await db.games.update_one({"id": gid}, {"$set": {
         "players": g["players"], "status": g["status"], "confirmedAt": g.get("confirmedAt"),
@@ -979,10 +1044,13 @@ async def book_game(gid: str, body: BookBody,
         raise HTTPException(404, "Game not found")
     if g.get("hostId") != x_player_id:
         raise HTTPException(403, "Only the host can book the court")
-    if g.get("status") not in ("CONFIRMED", "FORMING"):
+    # Booking can happen at ANY roster count under the new spec — the
+    # "Book anytime" principle. Booking is what makes a game CONFIRMED.
+    if g.get("status") not in ("NEEDS_COURT", "PLANNING"):
         raise HTTPException(400, f"Cannot book from status {g.get('status')}")
     now = datetime.now(timezone.utc).isoformat()
-    upd = {"status": "BOOKED", "hudleBookingUrl": body.hudleBookingUrl, "bookedAt": now}
+    upd = {"status": "CONFIRMED", "hudleBookingUrl": body.hudleBookingUrl,
+           "bookedAt": now, "confirmedAt": now}
     await db.games.update_one({"id": gid}, {"$set": upd})
     g.update(upd)
     return g
@@ -996,6 +1064,10 @@ async def cancel_game(gid: str,
         raise HTTPException(404, "Game not found")
     if g.get("hostId") != x_player_id:
         raise HTTPException(403, "Only the host can cancel")
+    # Game Journey Rework: cannot cancel a game that has been PLAYED or SCORED.
+    # A PLAYED game already happened; a SCORED game has Elo / counts applied.
+    if g.get("status") in ("PLAYED", "SCORED"):
+        raise HTTPException(400, f"Cannot cancel a {g.get('status')} game")
     now = datetime.now(timezone.utc).isoformat()
     upd = {"status": "CANCELLED", "cancelledBy": x_player_id, "cancelledAt": now}
     await db.games.update_one({"id": gid}, {"$set": upd})
@@ -1118,7 +1190,7 @@ async def recommendations(x_player_id: str = Header(default="kunal", alias="x-pl
     week = (date.today() + timedelta(days=14)).isoformat()
     out = []
     async for g in db.games.find(
-        {"status": "FORMING", "date": {"$gte": today, "$lte": week}}, {"_id": 0}
+        {"status": "PLANNING", "date": {"$gte": today, "$lte": week}}, {"_id": 0}
     ).sort("date", 1):
         if x_player_id in g["players"]:
             continue
@@ -1717,14 +1789,15 @@ async def dev_populate():
 
     GAME_SPECS = [
         # offset_days, start_h, dur_min, host_pref, venue_id, skill_lo, skill_hi, label, gtype, target_state, num_joined
-        (+2,  18, 90, "abhilaash-s", "round-two",     4.5, 6.5, "INTERMEDIATE",         "competitive", "FORMING",   2),
-        (+3,   8, 90, "ashwin-s",    "sunday-club",   4.0, 6.0, "EARLY RISERS",         "social",      "FORMING",   3),
-        (+5,  19, 90, "teyjas-c",    "jolt-method",   5.0, 7.0, "INT/ADV",              "competitive", "CONFIRMED", 4),
-        (+1,  17, 90, "ishaan-a",    "coplay-assagao",4.5, 6.5, "MIXED LEVELS",         "social",      "BOOKED",    4),
-        (+4,  19, 90, "girish-v",    "sunday-club",   5.5, 7.5, "ADV",                  "competitive", "BOOKED",    4),
-        (-2,  18, 90, "amar-s",      "round-two",     4.5, 6.5, "EVENING MIX",          "competitive", "COMPLETED", 4),
-        (-4,  19, 90, "dinika-t",    "sunday-club",   3.5, 5.5, "BEGINNER FRIENDLY",    "social",      "SCORED",    4),
-        (-8,  18, 90, "abhilaash-s", "round-two",     5.0, 7.0, "FRIDAY NIGHT",         "competitive", "SCORED",    4),
+        # NB: target_state uses the NEW status vocabulary post-Game-Journey-Rework.
+        (+2,  18, 90, "abhilaash-s", "round-two",     4.5, 6.5, "INTERMEDIATE",         "competitive", "PLANNING",    2),
+        (+3,   8, 90, "ashwin-s",    "sunday-club",   4.0, 6.0, "EARLY RISERS",         "social",      "PLANNING",    3),
+        (+5,  19, 90, "teyjas-c",    "jolt-method",   5.0, 7.0, "INT/ADV",              "competitive", "NEEDS_COURT", 4),
+        (+1,  17, 90, "ishaan-a",    "coplay-assagao",4.5, 6.5, "MIXED LEVELS",         "social",      "CONFIRMED",   4),
+        (+4,  19, 90, "girish-v",    "sunday-club",   5.5, 7.5, "ADV",                  "competitive", "CONFIRMED",   4),
+        (-2,  18, 90, "amar-s",      "round-two",     4.5, 6.5, "EVENING MIX",          "competitive", "PLAYED",      4),
+        (-4,  19, 90, "dinika-t",    "sunday-club",   3.5, 5.5, "BEGINNER FRIENDLY",    "social",      "SCORED",      4),
+        (-8,  18, 90, "abhilaash-s", "round-two",     5.0, 7.0, "FRIDAY NIGHT",         "competitive", "SCORED",      4),
     ]
 
     created = 0
@@ -1751,24 +1824,28 @@ async def dev_populate():
             "date": d, "startTime": st, "endTime": et,
             "skillLevelMin": lo, "skillLevelMax": hi, "skillLabel": label,
             "players": players,
-            "status": "FORMING", "gameType": gt,
+            "status": "PLANNING", "gameType": gt,
             "hudleBookingUrl": None, "cancelledBy": None, "cancelledAt": None,
-            "completedAt": None, "bookedAt": None, "confirmedAt": None, "scoredAt": None,
+            "completedAt": None, "playedAt": None, "bookedAt": None, "confirmedAt": None, "scoredAt": None,
             "scoresSubmittedBy": [], "reflectionsBy": [], "peerRatingsBy": [],
             "promptDismissedBy": [], "attendance": {},
             "shareLink": f"padelmatch.in/g/{gid[:6]}", "whatsappText": wa,
             "createdAt": now_iso, "matchId": None,
         }
-        if target in ("CONFIRMED", "BOOKED", "COMPLETED", "SCORED"):
+        # Roll the game forward to the target state. PLANNING is the base;
+        # NEEDS_COURT means full but unbooked; CONFIRMED means booked.
+        if target == "NEEDS_COURT":
+            g["status"] = "NEEDS_COURT"
+            g["confirmedAt"] = now_iso  # legacy "fullAt" marker
+        if target in ("CONFIRMED", "PLAYED", "SCORED"):
             g["status"] = "CONFIRMED"
-            g["confirmedAt"] = now_iso
-        if target in ("BOOKED", "COMPLETED", "SCORED"):
-            g["status"] = "BOOKED"
             g["bookedAt"] = now_iso
+            g["confirmedAt"] = now_iso
             g["hudleBookingUrl"] = venue.get("hudleUrl") or "https://hudle.in/bookings/demo"
-        if target in ("COMPLETED", "SCORED"):
-            g["status"] = "COMPLETED"
+        if target in ("PLAYED", "SCORED"):
+            g["status"] = "PLAYED"
             g["completedAt"] = now_iso
+            g["playedAt"] = now_iso
             # Create a Match for score entry.
             match_id = str(uuid.uuid4())
             g["matchId"] = match_id

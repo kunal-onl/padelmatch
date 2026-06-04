@@ -34,7 +34,12 @@ const QUESTIONS: Q[] = [
     ],
   },
   {
-    key: "competitiveExperience", label: "COMPETITIVE EXPERIENCE?", accent: C.blue,
+    // UX-AUDIT (May 2026): accent was an un-tokenised royal blue. Per the
+    // semantic-colour spec, "primary answer" categories use lime; blue is
+    // reserved for rank/section headers. Swapped to lime so the active
+    // pill matches Q1's behaviour. (Q2 stays purple = social/community
+    // context, Q4 stays ink = scoreboard/quality.)
+    key: "competitiveExperience", label: "COMPETITIVE EXPERIENCE?", accent: C.lime,
     options: [
       { value: "none", label: "NONE" },
       { value: "casual", label: "CASUAL TOURNAMENTS" },

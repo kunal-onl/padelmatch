@@ -69,8 +69,14 @@ export default function Days() {
         </View>
 
         <View style={styles.sessions}>
-          <MicroLabel style={{ marginBottom: 6 }}>SESSIONS PER WEEK — UP TO</MicroLabel>
-          <Text style={styles.sessionsNum}>{ranked.length}</Text>
+          {/* ContainerD: lime top accent band + cream body. Previously this
+              block used a full ink background which read as the brand's
+              "rating display" pattern — wrong semantic for a counter. */}
+          <View style={styles.sessionsBand} />
+          <View style={styles.sessionsBody}>
+            <MicroLabel style={{ marginBottom: 6 }}>SESSIONS PER WEEK — UP TO</MicroLabel>
+            <Text style={styles.sessionsNum}>{ranked.length}</Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -99,10 +105,10 @@ const styles = StyleSheet.create({
   badgeNum: { fontFamily: F.ub900, color: C.lime, fontSize: 13 },
   sessions: {
     marginTop: 18,
-    backgroundColor: C.ink,
-    padding: 16,
+    backgroundColor: C.white,
     borderWidth: BORDER, borderColor: C.ink,
-    alignItems: "center",
   },
-  sessionsNum: { fontFamily: F.ub900, color: C.lime, fontSize: 56, letterSpacing: -2, lineHeight: 60 },
+  sessionsBand: { height: 6, backgroundColor: C.lime },
+  sessionsBody: { padding: 16, alignItems: "center" },
+  sessionsNum: { fontFamily: F.ub900, color: C.ink, fontSize: 56, letterSpacing: -2, lineHeight: 60 },
 });

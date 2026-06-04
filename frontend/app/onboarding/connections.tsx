@@ -115,13 +115,17 @@ export default function Connections() {
 
                 <TouchableOpacity
                   onPress={() => toggleAdd(p.id)}
-                  style={[styles.actionBtn, added && { backgroundColor: C.lime }]}
+                  style={[styles.actionBtn, added ? styles.actionBtnAdded : styles.actionBtnEmpty]}
                   testID={`add-${p.id}`}
                   activeOpacity={0.8}
                 >
+                  {/* UX-AUDIT (May 2026): replaced "tennisball" with the
+                      brand's ContainerF (dashed border + plus) "awaiting
+                      input" pattern. Tennis ball isn't part of the brand's
+                      icon vocabulary — plus is. */}
                   <Ionicons
-                    name={added ? "checkmark" : "tennisball"}
-                    size={20}
+                    name={added ? "checkmark" : "add"}
+                    size={22}
                     color={C.ink}
                   />
                 </TouchableOpacity>
@@ -168,9 +172,17 @@ const styles = StyleSheet.create({
   row: { backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink, marginBottom: 8 },
   actionBtn: {
     width: 44, height: 44,
-    backgroundColor: C.cream,
-    borderWidth: BORDER, borderColor: C.ink,
     alignItems: "center", justifyContent: "center",
+  },
+  // ContainerF (dashed + plus): awaiting-input placeholder.
+  actionBtnEmpty: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5, borderColor: C.grey, borderStyle: "dashed",
+  },
+  // Filled / added: solid lime + ink border + ink check.
+  actionBtnAdded: {
+    backgroundColor: C.lime,
+    borderWidth: BORDER, borderColor: C.ink,
   },
   tagRow: { flexDirection: "row", paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
   tag: {

@@ -14,9 +14,13 @@ import { loadDraft, saveDraft } from "../../lib/onboarding-draft";
 
 const OPTIONS = [
   {
+    // UX-AUDIT (May 2026): icon background was C.blue (rank/section header
+    // token). Per the semantic-colour spec, the "primary featured option"
+    // should use lime. Blue stays available for the rank pill on the
+    // home screen but no longer doubles up as a feature accent here.
     key: "competitive", label: "COMPETITIVE",
     desc: "Tournaments, leagues, ranked games",
-    icon: "trophy" as const, accent: C.blue, fg: C.white,
+    icon: "trophy" as const, accent: C.lime, fg: C.ink,
   },
   {
     key: "social", label: "SOCIAL",

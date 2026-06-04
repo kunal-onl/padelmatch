@@ -170,9 +170,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderColor: "#00000010",
     alignItems: "center",
   },
-  colItemActive: { backgroundColor: C.lime },
+  // UX-AUDIT fix: was a full lime cell fill — depleted the lime
+  // token's CTA authority and made the picker compete with the
+  // primary CTA. Now uses an ink cell + lime text (scoreboard style),
+  // matching the brand's rating-display pattern.
+  colItemActive: { backgroundColor: C.ink },
   colItemText: { fontFamily: F.ub700, fontSize: 14, color: C.ink },
-  colItemTextActive: { fontFamily: F.ub900 },
+  colItemTextActive: { fontFamily: F.ub900, color: C.lime },
   summary: {
     marginTop: 18,
     backgroundColor: C.ink,

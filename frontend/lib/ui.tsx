@@ -80,8 +80,10 @@ export function SplitCTA({
   onPress,
   disabled,
   testID,
-  arrowIcon = "arrow-forward",
   filledColor = C.lime,
+  // arrowIcon kept as an accepted prop for backwards compat with older
+  // callers but ignored — the button is now a single centered block.
+  arrowIcon: _arrowIcon,
 }: {
   label: string;
   onPress: () => void;
@@ -98,19 +100,18 @@ export function SplitCTA({
       activeOpacity={0.8}
       style={[
         styles.ctaWrap,
+        { backgroundColor: filledColor },
         disabled && { opacity: 0.4 },
       ]}
     >
-      <View style={[styles.ctaMain, { backgroundColor: filledColor }]}>
-        <Text style={styles.ctaLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
-      </View>
-      <View style={styles.ctaArrow}>
-        {/* The arrow holder is ink; the icon mirrors the button's lead
-            colour so it reads as "the lime pulls you forward". On a
-            cream BACK button this yields a cream arrow on ink — still
-            clearly readable. The previous ink-on-ink was invisible. */}
-        <Ionicons name={arrowIcon} size={22} color={filledColor} />
-      </View>
+      <Text
+        style={styles.ctaLabel}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -266,18 +267,13 @@ const styles = StyleSheet.create({
     borderColor: C.ink,
   },
   ctaWrap: {
-    flexDirection: "row",
+    // Single solid block. Centered label. No arrow holder.
     borderWidth: BORDER,
     borderColor: C.ink,
     minHeight: 56,
-  },
-  ctaMain: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 14,
-    borderRightWidth: BORDER,
-    borderRightColor: C.ink,
+    paddingHorizontal: 16,
   },
   ctaLabel: {
     fontFamily: F.ub900,
@@ -285,12 +281,7 @@ const styles = StyleSheet.create({
     color: C.ink,
     letterSpacing: -0.4,
     textTransform: "uppercase",
-  },
-  ctaArrow: {
-    width: 56,
-    backgroundColor: C.ink,
-    alignItems: "center",
-    justifyContent: "center",
+    textAlign: "center",
   },
   outline: {
     flexDirection: "row",

@@ -77,7 +77,27 @@ export const api = {
     req(`/matches/${id}/score`, { method: "POST", body: JSON.stringify(data) }),
 
   // notifications
-  notifications: () => req("/notifications"),
+  notifications: (limit = 50) => req(`/notifications?limit=${limit}`),
   markRead: (id: string) =>
     req(`/notifications/${id}/read`, { method: "POST" }),
+  markAllRead: () => req("/notifications/read-all", { method: "POST" }),
+
+  // ── Game Journey Rework (Jun 2026) ──────────────────────────
+  acceptInvite: (id: string) => req(`/games/${id}/accept`, { method: "POST" }),
+  declineInvite: (id: string, nearMiss?: any) =>
+    req(`/games/${id}/decline`, { method: "POST", body: JSON.stringify({ nearMiss }) }),
+  postPublic: (id: string) => req(`/games/${id}/post-public`, { method: "POST" }),
+  inviteAdd: (id: string, playerIds: string[]) =>
+    req(`/games/${id}/invite-add`, { method: "POST", body: JSON.stringify({ playerIds }) }),
+  adjustGame: (id: string, patch: any) =>
+    req(`/games/${id}/adjust`, { method: "POST", body: JSON.stringify(patch) }),
+  refreshAvailability: (id: string) =>
+    req(`/games/${id}/refresh-availability`, { method: "POST" }),
+  gameView: (id: string, as?: "host" | "invited" | "public") =>
+    req(`/games/${id}/view${as ? `?as=${as}` : ""}`),
+  availabilityCheck: (date: string, startTime: string, endTime: string, force = false) =>
+    req(`/availability/check`, { method: "POST",
+      body: JSON.stringify({ date, startTime, endTime, force }) }),
+  registerPushToken: (token: string) =>
+    req(`/players/me/push-token`, { method: "POST", body: JSON.stringify({ token }) }),
 };

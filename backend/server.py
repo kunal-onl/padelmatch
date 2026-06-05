@@ -12,6 +12,11 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime, date, timedelta, timezone
 
+# Game Journey Rework modules (Track B/C/D).
+import availability
+import notify
+import game_journey as gj
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
@@ -106,6 +111,8 @@ class Player(BaseModel):
     gameTypes: List[str] = []  # ["competitive", "social"]
     whatsappVerified: bool = False
     whatsappVerifiedAt: Optional[str] = None
+    # Game Journey Rework: Expo push token registry (one per device).
+    expoPushTokens: List[str] = []
 
 
 class SetScore(BaseModel):
@@ -144,15 +151,16 @@ class Game(BaseModel):
     skillLevelMax: float
     skillLabel: str
     players: List[str]
-    # 5-state machine (Feb 2026 spec):
-    #   FORMING → CONFIRMED → BOOKED → COMPLETED → SCORED
-    #                                            ↘ CANCELLED
+    # 6-state vocab (Game Journey Rework, Jun 2026):
+    #   PLANNING → NEEDS_COURT → CONFIRMED → PLAYED → SCORED
+    #                                              ↘ CANCELLED
     status: str = "PLANNING"
     gameType: str = "competitive"  # competitive | social
     hudleBookingUrl: Optional[str] = None
     cancelledBy: Optional[str] = None
     cancelledAt: Optional[str] = None
     completedAt: Optional[str] = None
+    playedAt: Optional[str] = None
     bookedAt: Optional[str] = None
     confirmedAt: Optional[str] = None
     scoredAt: Optional[str] = None
@@ -162,6 +170,16 @@ class Game(BaseModel):
     peerRatingsBy: List[str] = []
     promptDismissedBy: List[str] = []
     attendance: Dict[str, bool] = {}      # pid -> attended?
+    # ── Invite cascade fields (Track D) ──────────────────────────
+    inviteList: List[str] = []            # ordered partner ids (cascade source)
+    invites: List[Dict[str, Any]] = []    # fired invite records (see gj.Invite)
+    cascadeWindowMinutes: int = 1         # host-set window (1/15/60/manual)
+    postedToPublic: bool = False
+    maxPlayers: int = 4
+    availabilitySnapshot: Optional[Dict[str, Any]] = None
+    cascadeAdvanceLock: Optional[str] = None     # atomic claim ticket
+    cascadeAdvanceLockAt: Optional[str] = None
+    # ── Sharing / metadata ───────────────────────────────────────
     shareLink: str = ""
     whatsappText: str = ""
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -878,8 +896,47 @@ class GameCreate(BaseModel):
     endTime: str
     skillLevelMin: float
     skillLevelMax: float
-    skillLabel: str
-    gameType: str = "competitive"  # competitive | social
+    skillLabel: Optional[str] = None       # ignored — derived server-side
+    gameType: str = "competitive"
+    # Track D additions:
+    inviteList: List[str] = []             # ordered partner ids the host queued
+    preConfirmIds: List[str] = []          # offline-arranged players → roster
+    cascadeWindowMinutes: int = 1          # 1 / 15 / 60 / "manual" (use big int)
+    availabilitySnapshot: Optional[Dict[str, Any]] = None
+    postedToPublic: bool = False
+
+
+class BookBody(BaseModel):
+    hudleBookingUrl: str
+
+
+class DeclineBody(BaseModel):
+    nearMiss: Optional[Dict[str, Any]] = None    # {preferredVenueId?, preferredStartTime?, ...}
+
+
+class AdjustBody(BaseModel):
+    venueId: Optional[str] = None
+    courtId: Optional[str] = None
+    date: Optional[str] = None
+    startTime: Optional[str] = None
+    endTime: Optional[str] = None
+    skillLevelMin: Optional[float] = None
+    skillLevelMax: Optional[float] = None
+
+
+class InviteAddBody(BaseModel):
+    playerIds: List[str]
+
+
+class AvailabilityCheck(BaseModel):
+    date: str
+    startTime: str    # HH:MM (24h)
+    endTime: str      # HH:MM (24h)
+    force: bool = False
+
+
+class PushTokenBody(BaseModel):
+    token: str
 
 
 # ── Game state helpers ──────────────────────────────────────────────────
@@ -948,23 +1005,46 @@ async def _auto_complete_if_past(g: dict) -> dict:
 
 
 @api.post("/games")
-async def create_game(body: GameCreate):
+async def create_game(body: GameCreate,
+                      x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Create a new game. Routes through the reducer.
+
+    Game Journey Rework: `hostId` is taken from the auth header
+    (`x-player-id`), not the request body. `skillLabel` is derived
+    server-side from the min/max range. Pre-confirmed players are
+    folded into the initial roster.
+    """
     venue = await db.venues.find_one({"id": body.venueId}, {"_id": 0})
     if not venue:
         raise HTTPException(400, "Unknown venue")
     if body.gameType not in ("competitive", "social"):
         raise HTTPException(400, "gameType must be competitive or social")
+
+    host = x_player_id   # auth header is authoritative
     gid = str(uuid.uuid4())
     d = datetime.fromisoformat(body.date).date()
+    skill_label = gj.derive_skill_label(body.skillLevelMin, body.skillLevelMax)
+
+    # Initial roster: host + pre-confirmed (deduped, host always first).
+    roster: List[str] = [host]
+    for pid in (body.preConfirmIds or []):
+        if pid != host and pid not in roster:
+            roster.append(pid)
+
+    # Strip pre-confirmed players out of the invite queue if any overlap.
+    invite_queue = [p for p in (body.inviteList or []) if p not in roster]
+
     wa = (
         f"\U0001F3BE Game at {venue['name']}, {venue['area']}\n"
         f"{d.strftime('%a %d %b')} \u00B7 {body.startTime}\u2013{body.endTime}\n"
-        f"Level: {body.skillLabel} ({body.skillLevelMin}\u2013{body.skillLevelMax})\n"
-        f"3 spots open\n\nJoin: padelmatch.in/g/{gid[:6]}"
+        f"Level: {skill_label} ({body.skillLevelMin}\u2013{body.skillLevelMax})\n"
+        f"{max(0, 4 - len(roster))} spots open\n\n"
+        f"Join: padelmatch.in/g/{gid[:6]}"
     )
+
     g = Game(
         id=gid,
-        hostId=body.hostId,
+        hostId=host,
         venueId=body.venueId,
         courtId=body.courtId,
         date=body.date,
@@ -972,40 +1052,76 @@ async def create_game(body: GameCreate):
         endTime=body.endTime,
         skillLevelMin=body.skillLevelMin,
         skillLevelMax=body.skillLevelMax,
-        skillLabel=body.skillLabel,
-        players=[body.hostId],
-        status="PLANNING",
+        skillLabel=skill_label,
+        players=roster,
+        status="PLANNING",   # reducer will re-derive
         gameType=body.gameType,
+        inviteList=invite_queue,
+        cascadeWindowMinutes=body.cascadeWindowMinutes,
+        postedToPublic=bool(body.postedToPublic),
+        availabilitySnapshot=body.availabilitySnapshot,
         shareLink=f"padelmatch.in/g/{gid[:6]}",
         whatsappText=wa,
     ).model_dump()
+    g = await gj.apply_transition(db, g, "create", actor=host)
     await db.games.insert_one(g)
+    # Fire notifications for pre-confirmed players (they get `game_booked`
+    # later, but emit a "you're in" inbox-only signal now if they have any
+    # tokens registered).
+    # (Per locked spec, pre-confirmed players don't get invite_received.)
+    # Kick off cascade if there's anyone queued.
+    await gj.cascade_advance(db, g)
+    # Re-fetch since cascade_advance may have written invites.
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
     g.pop("_id", None)
     return g
 
 
 @api.post("/games/{gid}/join")
 async def join_game(gid: str, x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Public-feed join. Only works if `postedToPublic` is true.
+
+    Note: invited players use `/accept` instead. This endpoint exists for
+    games posted to the open feed.
+    """
     g = await db.games.find_one({"id": gid}, {"_id": 0})
     if not g:
         raise HTTPException(404, "Game not found")
-    if g.get("status") == "CANCELLED":
-        raise HTTPException(400, "Game cancelled")
-    if x_player_id in g["players"]:
-        return g
-    if len(g["players"]) >= 4:
-        raise HTTPException(400, "Game full")
-    g["players"].append(x_player_id)
-    # PLANNING → NEEDS_COURT on 4th join (full but unbooked).
-    if len(g["players"]) >= 4 and g.get("status") == "PLANNING":
-        g["status"] = "NEEDS_COURT"
-        g["confirmedAt"] = datetime.now(timezone.utc).isoformat()
-    await db.games.update_one(
-        {"id": gid},
-        {"$set": {"players": g["players"], "status": g["status"],
-                  "confirmedAt": g.get("confirmedAt")}},
+    if g.get("postedToPublic"):
+        return await gj.apply_transition(db, g, "public_join", actor=x_player_id)
+    # Backwards-compat fallback: if there's a pending invite for this user,
+    # treat join-tap as an accept. Otherwise reject — public joins require
+    # the host to opt-in.
+    pending_for_me = any(
+        i.get("playerId") == x_player_id and i.get("status") == "pending"
+        for i in (g.get("invites") or [])
     )
-    return g
+    if pending_for_me:
+        return await gj.apply_transition(db, g, "accept", actor=x_player_id)
+    raise HTTPException(400, "Game is not posted to the public feed")
+
+
+@api.post("/games/{gid}/accept")
+async def accept_invite(gid: str,
+                        x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Invitee accepts a pending invite (or anyone with no invite pending
+    if the game is public)."""
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    return await gj.apply_transition(db, g, "accept", actor=x_player_id)
+
+
+@api.post("/games/{gid}/decline")
+async def decline_invite(gid: str, body: DeclineBody,
+                         x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    return await gj.apply_transition(
+        db, g, "decline", actor=x_player_id,
+        payload={"nearMiss": body.nearMiss},
+    )
 
 
 @api.post("/games/{gid}/leave")
@@ -1013,27 +1129,7 @@ async def leave_game(gid: str, x_player_id: str = Header(default="kunal", alias=
     g = await db.games.find_one({"id": gid}, {"_id": 0})
     if not g:
         raise HTTPException(404, "Game not found")
-    if x_player_id not in g["players"]:
-        return g
-    # Game Journey Rework: the host cannot leave their own game — they must
-    # cancel it (which respects the PLAYED/SCORED guard).
-    if g.get("hostId") == x_player_id:
-        raise HTTPException(400, "Host cannot leave their own game — cancel instead.")
-    g["players"].remove(x_player_id)
-    # Drop back to PLANNING if we dip below 4 players AND haven't been booked.
-    # A booked game (status=CONFIRMED) stays CONFIRMED on leave; the cascade
-    # may re-open to refill.
-    if g.get("status") in ("NEEDS_COURT",) and len(g["players"]) < 4:
-        g["status"] = "PLANNING"
-        g["confirmedAt"] = None
-    await db.games.update_one({"id": gid}, {"$set": {
-        "players": g["players"], "status": g["status"], "confirmedAt": g.get("confirmedAt"),
-    }})
-    return g
-
-
-class BookBody(BaseModel):
-    hudleBookingUrl: str
+    return await gj.apply_transition(db, g, "leave", actor=x_player_id)
 
 
 @api.patch("/games/{gid}/book")
@@ -1042,18 +1138,10 @@ async def book_game(gid: str, body: BookBody,
     g = await db.games.find_one({"id": gid}, {"_id": 0})
     if not g:
         raise HTTPException(404, "Game not found")
-    if g.get("hostId") != x_player_id:
-        raise HTTPException(403, "Only the host can book the court")
-    # Booking can happen at ANY roster count under the new spec — the
-    # "Book anytime" principle. Booking is what makes a game CONFIRMED.
-    if g.get("status") not in ("NEEDS_COURT", "PLANNING"):
-        raise HTTPException(400, f"Cannot book from status {g.get('status')}")
-    now = datetime.now(timezone.utc).isoformat()
-    upd = {"status": "CONFIRMED", "hudleBookingUrl": body.hudleBookingUrl,
-           "bookedAt": now, "confirmedAt": now}
-    await db.games.update_one({"id": gid}, {"$set": upd})
-    g.update(upd)
-    return g
+    return await gj.apply_transition(
+        db, g, "book", actor=x_player_id,
+        payload={"hudleBookingUrl": body.hudleBookingUrl},
+    )
 
 
 @api.post("/games/{gid}/cancel")
@@ -1062,17 +1150,174 @@ async def cancel_game(gid: str,
     g = await db.games.find_one({"id": gid}, {"_id": 0})
     if not g:
         raise HTTPException(404, "Game not found")
+    return await gj.apply_transition(db, g, "host_cancel", actor=x_player_id)
+
+
+# ── New game endpoints (Track D) ───────────────────────────────────────
+@api.post("/games/{gid}/post-public")
+async def post_public(gid: str,
+                      x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    return await gj.apply_transition(db, g, "post_public", actor=x_player_id)
+
+
+@api.post("/games/{gid}/invite-add")
+async def invite_add(gid: str, body: InviteAddBody,
+                     x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Append player ids to the cascade queue. If no invite is currently
+    pending, cascade_advance will fire one immediately."""
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
     if g.get("hostId") != x_player_id:
-        raise HTTPException(403, "Only the host can cancel")
-    # Game Journey Rework: cannot cancel a game that has been PLAYED or SCORED.
-    # A PLAYED game already happened; a SCORED game has Elo / counts applied.
-    if g.get("status") in ("PLAYED", "SCORED"):
-        raise HTTPException(400, f"Cannot cancel a {g.get('status')} game")
-    now = datetime.now(timezone.utc).isoformat()
-    upd = {"status": "CANCELLED", "cancelledBy": x_player_id, "cancelledAt": now}
-    await db.games.update_one({"id": gid}, {"$set": upd})
-    g.update(upd)
+        raise HTTPException(403, "Only the host can add invites")
+    queue = list(g.get("inviteList") or [])
+    in_roster = set(g.get("players") or [])
+    added = 0
+    for pid in body.playerIds:
+        if pid not in queue and pid not in in_roster:
+            queue.append(pid)
+            added += 1
+    await db.games.update_one({"id": gid}, {"$set": {"inviteList": queue}})
+    g["inviteList"] = queue
+    await gj.cascade_advance(db, g)
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    return {"ok": True, "added": added, "game": g}
+
+
+@api.post("/games/{gid}/adjust")
+async def adjust_game(gid: str, body: AdjustBody,
+                      x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Host moves the game to a near-miss alternative slot.
+
+    Triggers a fresh availability scrape for the new slot — host waits.
+    If the host changed the date/time, the snapshot is refreshed.
+    """
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    if g.get("hostId") != x_player_id:
+        raise HTTPException(403, "Only the host can adjust the slot")
+    payload: Dict[str, Any] = body.model_dump(exclude_unset=True)
+    new_date = payload.get("date") or g["date"]
+    new_start = payload.get("startTime") or g["startTime"]
+    new_end = payload.get("endTime") or g["endTime"]
+    if "date" in payload or "startTime" in payload or "endTime" in payload:
+        snap = await availability.get_or_fetch(db, new_date, new_start, new_end, force=True)
+        payload["availabilitySnapshot"] = snap
+    return await gj.apply_transition(db, g, "adjust_slot",
+                                     actor=x_player_id, payload=payload)
+
+
+@api.post("/games/{gid}/refresh-availability")
+async def refresh_availability(gid: str,
+                               x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Host-only manual refresh — forces a fresh finder call for the
+    game's current slot. Updates `availabilitySnapshot` on the game.
+
+    Invitees and the public feed read whatever's already in the snapshot
+    (cache); only host actions trigger fresh scrapes.
+    """
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+    if g.get("hostId") != x_player_id:
+        raise HTTPException(403, "Only the host can refresh availability")
+    snap = await availability.get_or_fetch(
+        db, g["date"], g["startTime"], g["endTime"], force=True
+    )
+    await db.games.update_one({"id": gid}, {"$set": {"availabilitySnapshot": snap}})
+    g["availabilitySnapshot"] = snap
     return g
+
+
+@api.get("/games/{gid}/view")
+async def view_game(gid: str,
+                    as_: Optional[str] = None,
+                    x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Persona-shaped game payload.
+
+    `as_` ∈ {host, invited, public} (passed as `?as=...`). If omitted,
+    the persona is auto-derived from x_player_id.
+
+    Host gets the full picture (invites, near-misses, lock state).
+    Invited players see their own invite + slot + actions.
+    Public sees the open-feed surface (no invite list).
+    """
+    g = await db.games.find_one({"id": gid}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Game not found")
+
+    is_host = g.get("hostId") == x_player_id
+    pending_for_me = next(
+        (i for i in (g.get("invites") or [])
+         if i.get("playerId") == x_player_id and i.get("status") == "pending"),
+        None,
+    )
+    is_in_roster = x_player_id in (g.get("players") or [])
+
+    # Auto-derive persona if not explicitly requested.
+    if as_ not in ("host", "invited", "public"):
+        as_ = ("host" if is_host
+               else "invited" if (pending_for_me or is_in_roster)
+               else "public")
+
+    base = dict(g)
+    base["_persona"] = as_
+    if as_ == "host":
+        return base
+    if as_ == "invited":
+        # Mask other invitees; keep the viewer's own invite record visible.
+        base["invites"] = [pending_for_me] if pending_for_me else []
+        base.pop("inviteList", None)
+        base.pop("cascadeAdvanceLock", None)
+        base.pop("cascadeAdvanceLockAt", None)
+        return base
+    # Public view
+    base.pop("invites", None)
+    base.pop("inviteList", None)
+    base.pop("cascadeAdvanceLock", None)
+    base.pop("cascadeAdvanceLockAt", None)
+    return base
+
+
+# ── Availability endpoint (Track C) ────────────────────────────────────
+@api.post("/availability/check")
+async def availability_check(body: AvailabilityCheck,
+                             x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Returns the cached or freshly-scraped availability snapshot for a
+    slot. `force=true` bypasses the cache and re-hits the finder. Use
+    this from the Host-a-Game flow's availability gate.
+    """
+    snap = await availability.get_or_fetch(
+        db, body.date, body.startTime, body.endTime, force=body.force,
+    )
+    return snap
+
+
+# ── Push token registration (Track D) ──────────────────────────────────
+@api.post("/players/me/push-token")
+async def register_push_token(body: PushTokenBody,
+                              x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    if not body.token or not body.token.startswith("ExponentPushToken"):
+        raise HTTPException(400, "Invalid Expo push token")
+    await db.players.update_one(
+        {"id": x_player_id},
+        {"$addToSet": {"expoPushTokens": body.token}},
+    )
+    return {"ok": True}
+
+
+@api.delete("/players/me/push-token")
+async def unregister_push_token(body: PushTokenBody,
+                                x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    await db.players.update_one(
+        {"id": x_player_id},
+        {"$pull": {"expoPushTokens": body.token}},
+    )
+    return {"ok": True}
 
 
 class DismissBody(BaseModel):
@@ -1300,15 +1545,44 @@ async def enter_score(mid: str, body: ScoreEntry):
 
 
 @api.get("/notifications")
-async def notifications(x_player_id: str = Header(default="kunal", alias="x-player-id")):
-    cur = db.notifications.find({"playerId": x_player_id}, {"_id": 0}).sort("createdAt", -1)
-    return [clean(n) async for n in cur]
+async def notifications(x_player_id: str = Header(default="kunal", alias="x-player-id"),
+                        limit: int = 50):
+    """Return the player's inbox (most recent first).
+
+    Game Journey Rework: the new schema uses `recipientId` / `readAt`;
+    legacy rows used `playerId` / `read`. The query reads both shapes.
+    """
+    q = {"$or": [{"recipientId": x_player_id}, {"playerId": x_player_id}]}
+    cur = db.notifications.find(q, {"_id": 0}).sort("createdAt", -1).limit(limit)
+    out: List[dict] = []
+    async for n in cur:
+        # Normalise so the client only sees one shape.
+        n.setdefault("recipientId", n.get("playerId"))
+        n.setdefault("readAt", None)
+        if n.get("read") and not n.get("readAt"):
+            n["readAt"] = n.get("createdAt")
+        out.append(clean(n))
+    return out
 
 
 @api.post("/notifications/{nid}/read")
 async def mark_read(nid: str):
-    await db.notifications.update_one({"id": nid}, {"$set": {"read": True}})
+    now = datetime.now(timezone.utc).isoformat()
+    await db.notifications.update_one(
+        {"id": nid}, {"$set": {"read": True, "readAt": now}}
+    )
     return {"ok": True}
+
+
+@api.post("/notifications/read-all")
+async def mark_all_read(x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    now = datetime.now(timezone.utc).isoformat()
+    res = await db.notifications.update_many(
+        {"$or": [{"recipientId": x_player_id}, {"playerId": x_player_id}],
+         "readAt": None},
+        {"$set": {"read": True, "readAt": now}},
+    )
+    return {"ok": True, "updated": res.modified_count}
 
 
 @api.post("/dev/reseed")
@@ -2100,8 +2374,27 @@ async def on_startup():
         await asyncio.gather(seed_if_empty(), seed_community())
     except Exception as e:
         log.exception("seed failed: %s", e)
+    # Track C: TTL index on the availability cache.
+    try:
+        await availability.ensure_cache_indexes(db)
+    except Exception as e:
+        log.exception("availability cache index setup failed: %s", e)
+    # Track D: cascade + expiry sweeper. asyncio task on this instance.
+    # Cascade advancement is protected by an atomic claim ticket
+    # (game_journey._claim_advance) so multi-instance is also safe.
+    try:
+        app.state.sweeper_task = asyncio.create_task(gj.run_sweeper_forever(db, interval=20))
+        log.info("game journey sweeper task started (interval=20s)")
+    except Exception as e:
+        log.exception("sweeper start failed: %s", e)
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    try:
+        task = getattr(app.state, "sweeper_task", None)
+        if task and not task.done():
+            task.cancel()
+    except Exception:
+        pass
     client.close()

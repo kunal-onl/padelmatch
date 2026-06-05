@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { C, F, BORDER } from "../../lib/theme";
 import { Heading, MicroLabel, Pill } from "../../lib/ui";
 import { GameCard } from "../../lib/game-card";
+import { HeaderBell } from "../../lib/header-bell";
 import { api } from "../../lib/api";
 
 export default function Games() {
@@ -40,14 +41,16 @@ export default function Games() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
         <Heading size={20}>GAMES FEED</Heading>
+        <View style={{ flex: 1 }} />
+        <HeaderBell />
         <TouchableOpacity
           testID="games-create-cta"
-          onPress={() => router.push("/create")}
+          onPress={() => router.push("/host" as any)}
           style={styles.createBtn}
           activeOpacity={0.85}
         >
           <Ionicons name="add" size={18} color={C.ink} />
-          <Text style={styles.createBtnText}>CREATE</Text>
+          <Text style={styles.createBtnText}>HOST</Text>
         </TouchableOpacity>
       </View>
 
@@ -94,8 +97,8 @@ export default function Games() {
           <View style={{ alignItems: "center", paddingVertical: 60 }}>
             <Text style={styles.emptyBig}>NO GAMES MATCH</Text>
             <Text style={styles.emptyBig}>YOUR PREFERENCES</Text>
-            <TouchableOpacity testID="games-empty-create" onPress={() => router.push("/create")} style={{ marginTop: 18 }}>
-              <Text style={styles.emptyCreate}>CREATE ONE →</Text>
+            <TouchableOpacity testID="games-empty-create" onPress={() => router.push("/host" as any)} style={{ marginTop: 18 }}>
+              <Text style={styles.emptyCreate}>HOST A GAME →</Text>
             </TouchableOpacity>
           </View>
         ) : (

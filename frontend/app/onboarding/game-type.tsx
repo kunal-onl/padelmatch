@@ -90,7 +90,7 @@ export default function GameType() {
       </ScrollView>
 
       <View style={{ padding: 20 }}>
-        <SplitCTA testID="onboarding-step7-continue" label="CONTINUE" onPress={onNext} disabled={selected.length === 0} />
+        <SplitCTA testID="onboarding-step7-continue" label="CONTINUE" intent="forward" onPress={onNext} disabled={selected.length === 0} />
       </View>
     </SafeAreaView>
   );

@@ -115,7 +115,7 @@ export default function OtherProfile() {
       </ScrollView>
 
       <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: 16, backgroundColor: C.cream, borderTopWidth: BORDER, borderTopColor: C.ink }}>
-        <SplitCTA testID="invite-to-game" label="INVITE TO GAME" onPress={() => router.push("/(tabs)/create")} />
+        <SplitCTA testID="invite-to-game" label="INVITE TO GAME" intent="forward" onPress={() => router.push("/host" as any)} />
       </View>
     </SafeAreaView>
   );

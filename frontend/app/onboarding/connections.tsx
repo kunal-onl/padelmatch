@@ -156,7 +156,7 @@ export default function Connections() {
       </ScrollView>
 
       <View style={{ padding: 20 }}>
-        <SplitCTA testID="onboarding-step8-continue" label={`CONTINUE (${conns.length})`} onPress={onNext} />
+        <SplitCTA testID="onboarding-step8-continue" label={`CONTINUE (${conns.length})`} intent="forward" onPress={onNext} />
       </View>
     </SafeAreaView>
   );

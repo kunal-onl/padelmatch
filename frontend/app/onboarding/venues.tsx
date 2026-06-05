@@ -107,7 +107,7 @@ export default function Venues() {
       </ScrollView>
 
       <View style={{ padding: 20 }}>
-        <SplitCTA testID="onboarding-step3-continue" label="CONTINUE" onPress={onNext} disabled={preferred.length === 0} />
+        <SplitCTA testID="onboarding-step3-continue" label="CONTINUE" intent="forward" onPress={onNext} disabled={preferred.length === 0} />
       </View>
     </SafeAreaView>
   );

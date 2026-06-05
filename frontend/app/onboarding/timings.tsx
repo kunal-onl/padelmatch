@@ -144,7 +144,7 @@ export default function Timings() {
       </ScrollView>
 
       <View style={{ padding: 20 }}>
-        <SplitCTA testID="onboarding-step5-continue" label="CONTINUE" onPress={onNext} disabled={!valid} />
+        <SplitCTA testID="onboarding-step5-continue" label="CONTINUE" intent="forward" onPress={onNext} disabled={!valid} />
       </View>
     </SafeAreaView>
   );

@@ -151,7 +151,7 @@ export default function Home() {
 
         {/* Primary CTA */}
         <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
-          <SplitCTA testID="cta-find-game" label="FIND A GAME" onPress={() => router.push("/(tabs)/games")} />
+          <SplitCTA testID="cta-find-game" label="FIND A GAME" intent="forward" onPress={() => router.push("/(tabs)/games")} />
         </View>
 
         {/* Strong matches */}

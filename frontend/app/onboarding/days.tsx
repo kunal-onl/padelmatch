@@ -81,7 +81,7 @@ export default function Days() {
       </ScrollView>
 
       <View style={{ padding: 20 }}>
-        <SplitCTA testID="onboarding-step4-continue" label="CONTINUE" onPress={onNext} disabled={ranked.length === 0} />
+        <SplitCTA testID="onboarding-step4-continue" label="CONTINUE" intent="forward" onPress={onNext} disabled={ranked.length === 0} />
       </View>
     </SafeAreaView>
   );

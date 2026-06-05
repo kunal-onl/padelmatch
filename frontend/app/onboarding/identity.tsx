@@ -113,7 +113,7 @@ export default function Identity() {
         </ScrollView>
 
         <View style={{ padding: 20 }}>
-          <SplitCTA testID="onboarding-step1-continue" label="CONTINUE" onPress={onNext} />
+          <SplitCTA testID="onboarding-step1-continue" label="CONTINUE" intent="forward" onPress={onNext} />
           <TouchableOpacity testID="quick-demo-login" onPress={useDemo} style={{ marginTop: 14, alignItems: "center" }}>
             <Text style={{ fontFamily: F.mono, color: C.ink, fontSize: 11, letterSpacing: 1.4 }}>
               USE DEMO PROFILE (KUNAL B.) →

@@ -269,7 +269,7 @@ export default function GameDetail() {
                 Enter scores, write a quick reflection, and rate your partners.
               </Body>
               <View style={{ height: 12 }} />
-              <SplitCTA testID="open-postmatch" label="OPEN POST-MATCH" onPress={() => router.push("/(tabs)/home")} />
+              <SplitCTA testID="open-postmatch" label="OPEN POST-MATCH" intent="forward" onPress={() => router.push("/(tabs)/home")} />
             </View>
           )}
           {game.status === "SCORED" && (

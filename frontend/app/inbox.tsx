@@ -69,6 +69,9 @@ export default function Inbox() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
+        <TouchableOpacity testID="inbox-back" onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color={C.ink} />
+        </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Heading size={22}>INBOX</Heading>
           <Body size={11} color={C.grey}>
@@ -135,6 +138,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center",
             paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
             borderBottomWidth: 1, borderColor: "#00000020" },
+  backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", marginRight: 4, marginLeft: -8 },
   markAllBtn: { paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1.5, borderColor: C.ink },
   markAllTxt: { fontFamily: F.mono, fontSize: 9, letterSpacing: 1.4, color: C.ink },
   row: { flexDirection: "row", backgroundColor: C.white,

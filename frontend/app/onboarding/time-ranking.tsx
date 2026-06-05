@@ -100,7 +100,7 @@ export default function TimeRanking() {
         </View>
 
         <View style={{ padding: 20 }}>
-          <SplitCTA testID="onboarding-step6-continue" label="CONTINUE" onPress={onNext} disabled={slots.length === 0} />
+          <SplitCTA testID="onboarding-step6-continue" label="CONTINUE" intent="forward" onPress={onNext} disabled={slots.length === 0} />
         </View>
       </SafeAreaView>
     </GestureHandlerRootView>

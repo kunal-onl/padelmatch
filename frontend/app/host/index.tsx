@@ -176,7 +176,7 @@ export default function HostGame() {
                 : "Scores recorded · rating unaffected."}
             </Body>
             <View style={{ height: 24 }} />
-            <SplitCTA label="CHECK AVAILABILITY" onPress={() => { setStep(2); runAvailability(); }} />
+            <SplitCTA label="CHECK AVAILABILITY" onPress={() => { setStep(2); runAvailability(); }} intent="forward" />
           </>
         )}
 
@@ -225,10 +225,10 @@ export default function HostGame() {
             <View style={{ height: 24 }} />
             <View style={{ flexDirection: "row", gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <SplitCTA label="BACK" onPress={() => setStep(1)} filledColor={C.coral} />
+                <SplitCTA label="BACK" onPress={() => setStep(1)} filledColor={C.coral} intent="back" />
               </View>
               <View style={{ flex: 2 }}>
-                <SplitCTA label="NEXT" onPress={() => setStep(3)} disabled={!pickedVenueId} />
+                <SplitCTA label="NEXT" onPress={() => setStep(3)} disabled={!pickedVenueId} intent="forward" />
               </View>
             </View>
           </>
@@ -270,7 +270,7 @@ export default function HostGame() {
             <View style={{ height: 24 }} />
             <View style={{ flexDirection: "row", gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <SplitCTA label="BACK" onPress={() => setStep(2)} filledColor={C.coral} />
+                <SplitCTA label="BACK" onPress={() => setStep(2)} filledColor={C.coral} intent="back" />
               </View>
               <View style={{ flex: 2 }}>
                 <SplitCTA label="NEXT →" onPress={() => setStep(4)} />
@@ -334,10 +334,10 @@ export default function HostGame() {
             <View style={{ height: 24 }} />
             <View style={{ flexDirection: "row", gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <SplitCTA label="BACK" onPress={() => setStep(3)} filledColor={C.coral} />
+                <SplitCTA label="BACK" onPress={() => setStep(3)} filledColor={C.coral} intent="back" />
               </View>
               <View style={{ flex: 2 }}>
-                <SplitCTA label="PREVIEW" onPress={() => setStep(5)} />
+                <SplitCTA label="PREVIEW" onPress={() => setStep(5)} intent="forward" />
               </View>
             </View>
           </>
@@ -369,7 +369,7 @@ export default function HostGame() {
             <View style={{ height: 24 }} />
             <View style={{ flexDirection: "row", gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <SplitCTA label="BACK" onPress={() => setStep(4)} filledColor={C.coral} />
+                <SplitCTA label="BACK" onPress={() => setStep(4)} filledColor={C.coral} intent="back" />
               </View>
               <View style={{ flex: 2 }}>
                 <SplitCTA testID="host-publish-cta" label={publishing ? "PUBLISHING…" : "PUBLISH GAME"}

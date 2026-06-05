@@ -81,6 +81,7 @@ export function SplitCTA({
   disabled,
   testID,
   filledColor = C.lime,
+  intent = "none",
   // arrowIcon kept as an accepted prop for backwards compat with older
   // callers but ignored — the button is now a single centered block.
   arrowIcon: _arrowIcon,
@@ -91,6 +92,11 @@ export function SplitCTA({
   testID?: string;
   arrowIcon?: keyof typeof Ionicons.glyphMap;
   filledColor?: string;
+  // Sport Brutalism directional CTAs render an arrow inline with the
+  // label so the button still telegraphs direction even though the
+  // ink "arrow holder" half is gone. Action buttons (publish, join,
+  // confirm, share) stay arrow-less.
+  intent?: "forward" | "back" | "none";
 }) {
   return (
     <TouchableOpacity
@@ -104,14 +110,22 @@ export function SplitCTA({
         disabled && { opacity: 0.4 },
       ]}
     >
-      <Text
-        style={styles.ctaLabel}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.7}
-      >
-        {label}
-      </Text>
+      <View style={styles.ctaInner}>
+        {intent === "back" && (
+          <Ionicons name="arrow-back" size={20} color={C.ink} style={{ marginRight: 8 }} />
+        )}
+        <Text
+          style={styles.ctaLabel}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
+          {label}
+        </Text>
+        {intent === "forward" && (
+          <Ionicons name="arrow-forward" size={20} color={C.ink} style={{ marginLeft: 8 }} />
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -274,6 +288,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
+  },
+  ctaInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   ctaLabel: {
     fontFamily: F.ub900,

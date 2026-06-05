@@ -102,10 +102,14 @@ export function SplitCTA({
       ]}
     >
       <View style={[styles.ctaMain, { backgroundColor: filledColor }]}>
-        <Text style={styles.ctaLabel}>{label}</Text>
+        <Text style={styles.ctaLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
       </View>
       <View style={styles.ctaArrow}>
-        <Ionicons name={arrowIcon} size={22} color={C.ink} />
+        {/* The arrow holder is ink; the icon mirrors the button's lead
+            colour so it reads as "the lime pulls you forward". On a
+            cream BACK button this yields a cream arrow on ink — still
+            clearly readable. The previous ink-on-ink was invisible. */}
+        <Ionicons name={arrowIcon} size={22} color={filledColor} />
       </View>
     </TouchableOpacity>
   );

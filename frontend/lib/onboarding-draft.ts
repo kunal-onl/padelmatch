@@ -49,6 +49,11 @@ export type Draft = {
   connections: ConnectionDraft[];
   // Optional / profile-only (rate-your-shots was moved out of onboarding)
   shotComfort: Record<string, number>;
+  // Self-Improvement Score — four domains, tier 1..6 (0 = not yet rated)
+  domainStrokes: number;
+  domainTactics: number;
+  domainInner: number;
+  domainOuter: number;
   // Step 9
   whatsappVerified: boolean;
   // legacy display
@@ -71,6 +76,10 @@ const DEFAULT: Draft = {
   gameTypes: [],
   connections: [],
   shotComfort: {},
+  domainStrokes: 0,
+  domainTactics: 0,
+  domainInner: 0,
+  domainOuter: 0,
   whatsappVerified: false,
   profilePhoto: null,
   bio: "",

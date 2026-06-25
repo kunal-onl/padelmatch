@@ -100,4 +100,6 @@ export const CATEGORIES: Array<{ key: Shot["category"]; label: string }> = [
   { key: "defensive", label: "WALLS" },
 ];
 
-export const COMFORT_LABELS = ["NEVER", "KNOW IT", "SOMETIMES", "COMFY", "CONFIDENT"];
+// 6-point self-mark for the optional Shot Library. Purely personal — marking
+// a shot here NEVER changes the strokes tier (§6 decoupling).
+export const COMFORT_LABELS = ["NEVER USE", "VERY UNRELIABLE", "UNCOMFORTABLE", "COMFORTABLE", "ENJOY HITTING IT", "EXCELLENT"];

@@ -54,6 +54,7 @@ VENUE_NAME_TO_ID: Dict[str, str] = {
     "Jolt Method":        "jolt-method",
     "Coco Anjuna":        "coco-anjuna",
     "Clube de Floresta":  "clube-de-floresta",
+    "Padelinho Anjuna":   "padelinho-anjuna",
 }
 
 
@@ -123,6 +124,7 @@ def _venue_area_hint(name: str) -> str:
         "CoPlay Panjim": "Panjim", "Coco Assagao": "Assagao",
         "CoPlay Assagao": "Assagao", "Jolt Method": "Siolim",
         "Coco Anjuna": "Anjuna", "Clube de Floresta": "Assagao",
+        "Padelinho Anjuna": "Anjuna",
     }.get(name, "Goa")
 
 
@@ -134,7 +136,7 @@ async def _call_live(date: str, start24: str, end24: str) -> Dict[str, Any]:
         "startTime": to_12h(start24),
         "endTime": to_12h(end24),
     }
-    async with httpx.AsyncClient(timeout=50.0) as c:
+    async with httpx.AsyncClient(timeout=90.0) as c:
         r = await c.post(url, json=body)
         r.raise_for_status()
         return r.json()

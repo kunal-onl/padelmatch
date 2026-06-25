@@ -143,23 +143,23 @@ export default function Players() {
                     <Text style={styles.name} numberOfLines={1}>{p.name.toUpperCase()}</Text>
                     <View style={[styles.statusDot, { backgroundColor: STATUS_COLOR[p.status] || C.grey }]} />
                   </View>
-                  <View style={{ flexDirection: "row", marginTop: 4, gap: 10, flexWrap: "wrap" }}>
-                    <Text style={styles.metaPrimary}>
-                      {p.gameRatingStatus === "estimated" ? "—" : p.gameRating.toFixed(1)}
-                    </Text>
-                    <Text style={styles.metaSecondary}>· {p.matchesPlayed} MATCHES</Text>
+                  <View style={{ flexDirection: "row", marginTop: 4, gap: 8, flexWrap: "wrap" }}>
+                    <Text style={styles.metaSecondary}>{p.matchesPlayed} MATCHES</Text>
                     {area ? <Text style={styles.metaSecondary}>· {area}</Text> : null}
                   </View>
                 </View>
-                <View style={{ alignItems: "flex-end" }}>
+                <View style={styles.rightCol}>
+                  <Text style={styles.ratingColNum} testID={`player-rating-${p.id}`}>
+                    {p.gameRatingStatus === "estimated" ? "—" : p.gameRating.toFixed(1)}
+                  </Text>
                   {mutual && (
-                    <View style={[styles.badge, { backgroundColor: C.lime }]} testID={`mutual-${p.id}`}>
+                    <View style={[styles.badge, { backgroundColor: C.lime, marginTop: 4 }]} testID={`mutual-${p.id}`}>
                       <Ionicons name="swap-horizontal" size={12} color={C.ink} />
                       <Text style={styles.badgeText}>MUTUAL</Text>
                     </View>
                   )}
                   {!mutual && following && (
-                    <View style={[styles.badge, { backgroundColor: C.cream, borderColor: C.ink }]} testID={`following-${p.id}`}>
+                    <View style={[styles.badge, { backgroundColor: C.cream, borderColor: C.ink, marginTop: 4 }]} testID={`following-${p.id}`}>
                       <Text style={[styles.badgeText, { color: C.ink }]}>ADDED</Text>
                     </View>
                   )}
@@ -203,6 +203,10 @@ const styles = StyleSheet.create({
   statusDot: { width: 7, height: 7 },
   metaPrimary: { fontFamily: F.mono, fontSize: 11, color: C.ink, letterSpacing: 0.8 },
   metaSecondary: { fontFamily: F.mono, fontSize: 10, color: C.grey, letterSpacing: 1 },
+  // Fixed-width right-aligned rating column so numbers line up down the list
+  // regardless of the variable matches/venue metadata.
+  rightCol: { alignItems: "flex-end", minWidth: 50, marginLeft: 8 },
+  ratingColNum: { fontFamily: F.ub900, fontSize: 18, color: C.ink, letterSpacing: -0.5 },
   badge: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 8, paddingVertical: 4,

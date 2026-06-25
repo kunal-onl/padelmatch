@@ -100,4 +100,12 @@ export const api = {
       body: JSON.stringify({ date, startTime, endTime, force }) }),
   registerPushToken: (token: string) =>
     req(`/players/me/push-token`, { method: "POST", body: JSON.stringify({ token }) }),
+
+  // Self-Improvement Score (four private domains)
+  getDomains: () => req("/me/domains"),
+  getDomainHistory: (domain: string) => req(`/me/domains/history?domain=${domain}`),
+  setDomain: (domain: string, tier: number, source = "weekly_self_edit") =>
+    req(`/me/domains`, { method: "POST", body: JSON.stringify({ domain, tier, source }) }),
+  seedDomainsOnboarding: (tiers: { strokes: number; tactics: number; inner: number; outer: number }) =>
+    req(`/me/domains/onboarding`, { method: "POST", body: JSON.stringify(tiers) }),
 };

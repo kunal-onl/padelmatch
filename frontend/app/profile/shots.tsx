@@ -48,13 +48,13 @@ export default function ProfileShots() {
         <TouchableOpacity onPress={() => router.back()} testID="shots-back" style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={C.ink} />
         </TouchableOpacity>
-        <Text style={styles.title}>RATE YOUR SHOTS</Text>
+        <Text style={styles.title}>SHOT LIBRARY</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={{ paddingHorizontal: 16 }}>
         <Body size={11} color={C.grey} style={{ marginTop: 4 }}>
-          Tap to rate each shot. This sharpens your rating estimate. Update anytime.
+          A map of the padel territory — explore it when you're curious. Marking shots here is just for you; it never changes your ratings.
         </Body>
 
         <View style={styles.tabs}>
@@ -97,7 +97,7 @@ export default function ProfileShots() {
                 {s.description}
               </Text>
               <View style={styles.comfortRow}>
-                {COMFORT_LABELS.map((label, i) => {
+                {COMFORT_LABELS.map((_label, i) => {
                   const val = i + 1;
                   const active = vals[s.slug] === val;
                   return (
@@ -107,13 +107,16 @@ export default function ProfileShots() {
                       style={[styles.comfortBtn, active && { backgroundColor: C.lime }]}
                       onPress={() => set(s.slug, val)}
                     >
-                      <Text style={{ fontFamily: F.ub700, fontSize: 8, color: C.ink, letterSpacing: 0.6, textAlign: "center" }}>
-                        {label}
-                      </Text>
+                      <Text style={styles.comfortNum}>{val}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
+              <Text style={styles.comfortLabel}>
+                {vals[s.slug]
+                  ? `${vals[s.slug]} · ${COMFORT_LABELS[vals[s.slug] - 1]}`
+                  : "TAP TO MARK · 1 NEVER USE → 6 EXCELLENT"}
+              </Text>
             </View>
           </View>
         ))}
@@ -122,7 +125,7 @@ export default function ProfileShots() {
       <View style={{ padding: 20 }}>
         <SplitCTA
           testID="profile-shots-save"
-          label={saving ? "SAVING\u2026" : "SAVE RATINGS"}
+          label={saving ? "SAVING\u2026" : "SAVE"}
           onPress={onSave}
           disabled={saving}
         />
@@ -147,4 +150,6 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: 10, alignItems: "center", justifyContent: "center",
     borderWidth: BORDER, borderColor: C.ink, backgroundColor: C.white, marginLeft: -2,
   },
+  comfortNum: { fontFamily: F.ub900, fontSize: 14, color: C.ink },
+  comfortLabel: { fontFamily: F.mono, fontSize: 9, color: C.grey, letterSpacing: 1, marginTop: 6 },
 });

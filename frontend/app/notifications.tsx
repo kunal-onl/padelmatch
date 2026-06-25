@@ -10,11 +10,19 @@ import { api } from "../lib/api";
 import { formatTimeAgo } from "../lib/utils";
 
 const TYPE_META: Record<string, { bg: string; icon: any; fg: string }> = {
-  game_opened: { bg: C.lime, icon: "flash", fg: C.ink },
-  rank_up: { bg: C.purple, icon: "trophy", fg: C.white },
-  score_request: { bg: C.cream, icon: "tennisball-outline", fg: C.ink },
-  rating_update: { bg: C.blue, icon: "arrow-up", fg: C.white },
-  new_player: { bg: C.ink, icon: "person-add-outline", fg: C.lime },
+  // Live game-journey types
+  invite_received:    { bg: C.lime,  icon: "mail-outline",       fg: C.ink },
+  invite_accepted:    { bg: C.lime,  icon: "checkmark",          fg: C.ink },
+  near_miss_received: { bg: C.blue,  icon: "time-outline",       fg: C.white },
+  game_booked:        { bg: C.ink,   icon: "calendar-outline",   fg: C.lime },
+  game_cancelled:     { bg: C.coral, icon: "close",              fg: C.white },
+  score_prompt:       { bg: C.cream, icon: "tennisball-outline", fg: C.ink },
+  // Legacy / seed types
+  game_opened:        { bg: C.lime,  icon: "flash",              fg: C.ink },
+  rank_up:            { bg: C.blue,  icon: "trophy",             fg: C.white },
+  score_request:      { bg: C.cream, icon: "tennisball-outline", fg: C.ink },
+  rating_update:      { bg: C.blue,  icon: "arrow-up",           fg: C.white },
+  new_player:         { bg: C.ink,   icon: "person-add-outline", fg: C.lime },
 };
 
 export default function Notifications() {
@@ -31,10 +39,13 @@ export default function Notifications() {
 
   const onTap = async (n: any) => {
     await api.markRead(n.id).catch(() => {});
-    if (n.type === "score_request" && n.relatedId) {
-      router.push(`/score/${n.relatedId}`);
-    } else if (n.type === "game_opened" && n.relatedId) {
-      router.push(`/games/${n.relatedId}`);
+    // Every notification relates to a game — open it (the game detail exposes
+    // the right action, incl. score entry). Fall back to any deep link.
+    const gid = n.gameId || n.relatedId || n.payload?.gameId;
+    if (gid) {
+      router.push(`/games/${gid}` as any);
+    } else if (typeof n.payload?.deepLink === "string") {
+      router.push(n.payload.deepLink as any);
     }
   };
 
@@ -70,7 +81,7 @@ export default function Notifications() {
                 <Ionicons name={meta.icon} size={20} color={meta.fg} />
               </View>
               <View style={{ flex: 1, padding: 12 }}>
-                <Body size={12}>{n.message}</Body>
+                <Body size={12}>{n.message || "New activity on one of your games"}</Body>
                 <Text style={{ fontFamily: F.mono, fontSize: 9, color: C.grey, marginTop: 4, letterSpacing: 1 }}>
                   {formatTimeAgo(n.createdAt)} AGO
                 </Text>

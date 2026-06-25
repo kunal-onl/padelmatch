@@ -67,6 +67,15 @@ export default function Reveal() {
         });
         setRating(player.gameRating);
         await signIn(player.id);
+        // Seed the four self-improvement domains (source=onboarding).
+        try {
+          await api.seedDomainsOnboarding({
+            strokes: draft.domainStrokes || 1,
+            tactics: draft.domainTactics || 1,
+            inner: draft.domainInner || 1,
+            outer: draft.domainOuter || 1,
+          });
+        } catch { /* non-fatal — radar shows "not rated yet" until edited */ }
         await resetDraft();
       } catch (e: any) {
         Alert.alert("Sign-up failed", e.message ?? "Try again");

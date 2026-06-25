@@ -12,13 +12,15 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime, date, timedelta, timezone
 
+# Load .env BEFORE importing local modules — some of them (e.g. availability)
+# read configuration such as FINDER_BASE_URL / FINDER_MODE at import time.
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / ".env")
+
 # Game Journey Rework modules (Track B/C/D).
 import availability
 import notify
 import game_journey as gj
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / ".env")
 
 mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
@@ -113,6 +115,37 @@ class Player(BaseModel):
     whatsappVerifiedAt: Optional[str] = None
     # Game Journey Rework: Expo push token registry (one per device).
     expoPushTokens: List[str] = []
+
+
+# ── Self-Improvement Score (four independent domains) ──────────────────
+# Each domain holds a tier 1..6 + an authorship state, stored as append-only
+# dated snapshots (current = latest, history = trajectory). v1 only ever sets
+# authorship="self_assessed"; "peer_reviewed" is built-but-dormant.
+DOMAINS = ["strokes", "tactics", "inner", "outer"]
+DOMAIN_EDIT_WINDOW_DAYS = 7
+
+
+class DomainRating(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    playerId: str
+    domain: str                                  # strokes | tactics | inner | outer
+    tier: int                                    # 1..6
+    authorship: str = "self_assessed"            # self_assessed | peer_reviewed [LATER]
+    source: str = "weekly_self_edit"             # onboarding | weekly_self_edit | peer [LATER]
+    createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class DomainRatingIn(BaseModel):
+    domain: str
+    tier: int
+    source: str = "weekly_self_edit"
+
+
+class OnboardingDomainsIn(BaseModel):
+    strokes: int
+    tactics: int
+    inner: int
+    outer: int
 
 
 class SetScore(BaseModel):
@@ -225,6 +258,9 @@ VENUES_SEED = [
      "courts": [{"id": "sunday-c1", "name": "Court 1"},
                 {"id": "sunday-c2", "name": "Court 2"},
                 {"id": "sunday-c3", "name": "Court 3"}]},
+    {"id": "padelinho-anjuna", "name": "Padelinho", "area": "Anjuna",
+     "hudleUrl": "https://hudle.in/venues/padelinho-anjuna/348451",
+     "courts": [{"id": "padelinho-anjuna-c1", "name": "Court 1"}]},
 ]
 
 ALL_VENUE_IDS = [v["id"] for v in VENUES_SEED]
@@ -831,7 +867,7 @@ async def list_games(
         q["skillLevelMin"]["$lte"] = skillMax
     if openOnly:
         # "Open" in the new state machine = still accepting players.
-        q["status"] = {"$in": ["FORMING"]}
+        q["status"] = {"$in": ["PLANNING", "NEEDS_COURT"]}
     games = []
     async for g in db.games.find(q, {"_id": 0}).sort("date", 1):
         g = await _auto_complete_if_past(g)
@@ -1318,6 +1354,84 @@ async def unregister_push_token(body: PushTokenBody,
         {"$pull": {"expoPushTokens": body.token}},
     )
     return {"ok": True}
+
+
+# ── Self-Improvement Score endpoints ──────────────────────────────────
+async def _domain_snapshot(player_id: str, domain: str):
+    """Latest (current) snapshot for a domain, or None."""
+    return await db.domain_ratings.find_one(
+        {"playerId": player_id, "domain": domain}, {"_id": 0},
+        sort=[("createdAt", -1)],
+    )
+
+
+async def _next_editable_at(player_id: str, domain: str) -> Optional[str]:
+    """ISO time when the next weekly self-edit unlocks, or None if editable now."""
+    last = await db.domain_ratings.find_one(
+        {"playerId": player_id, "domain": domain, "source": "weekly_self_edit"},
+        {"_id": 0, "createdAt": 1}, sort=[("createdAt", -1)],
+    )
+    if not last:
+        return None
+    nxt = datetime.fromisoformat(last["createdAt"]) + timedelta(days=DOMAIN_EDIT_WINDOW_DAYS)
+    return nxt.isoformat() if nxt > datetime.now(timezone.utc) else None
+
+
+@api.get("/me/domains")
+async def get_domains(x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Current self-improvement reading: latest snapshot per domain (+ when the
+    next weekly edit unlocks). Domains with no snapshot return null."""
+    out: Dict[str, Any] = {}
+    for d in DOMAINS:
+        snap = await _domain_snapshot(x_player_id, d)
+        out[d] = {**snap, "editableAt": await _next_editable_at(x_player_id, d)} if snap else None
+    return {"domains": out}
+
+
+@api.get("/me/domains/history")
+async def get_domain_history(domain: str,
+                             x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    if domain not in DOMAINS:
+        raise HTTPException(400, "Unknown domain")
+    cur = db.domain_ratings.find(
+        {"playerId": x_player_id, "domain": domain}, {"_id": 0}).sort("createdAt", 1)
+    return [s async for s in cur]
+
+
+@api.post("/me/domains")
+async def post_domain(body: DomainRatingIn,
+                      x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Append a new self-assessment snapshot. Weekly self-edits are rate-limited
+    server-side to one per domain per 7 days."""
+    if body.domain not in DOMAINS:
+        raise HTTPException(400, "Unknown domain")
+    if not (1 <= body.tier <= 6):
+        raise HTTPException(400, "tier must be 1..6")
+    source = body.source if body.source in ("onboarding", "weekly_self_edit") else "weekly_self_edit"
+    if source == "weekly_self_edit":
+        nxt = await _next_editable_at(x_player_id, body.domain)
+        if nxt:
+            raise HTTPException(429, f"Already updated this week — next edit unlocks {nxt}")
+    doc = DomainRating(playerId=x_player_id, domain=body.domain, tier=body.tier,
+                       authorship="self_assessed", source=source).model_dump()
+    await db.domain_ratings.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.post("/me/domains/onboarding")
+async def post_domains_onboarding(body: OnboardingDomainsIn,
+                                  x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Seed all four domains at onboarding (source=onboarding, self_assessed)."""
+    written = []
+    for d in DOMAINS:
+        tier = max(1, min(6, int(getattr(body, d))))
+        doc = DomainRating(playerId=x_player_id, domain=d, tier=tier,
+                           authorship="self_assessed", source="onboarding").model_dump()
+        await db.domain_ratings.insert_one(doc)
+        doc.pop("_id", None)
+        written.append(doc)
+    return {"written": written}
 
 
 class DismissBody(BaseModel):
@@ -1933,9 +2047,18 @@ async def seed_community() -> int:
         # Strip the keys we always $set so they don't end up in $setOnInsert.
         for k in list(seed.keys()):
             defaults.pop(k, None)
+        set_fields = dict(seed)
+        # `status` / `invitedBy` are lifecycle values, not canonical profile data.
+        # Set them on first insert only, so a player who has since become active
+        # (a real invited→active transition, or a manual promotion) is never
+        # demoted back to the seed status on a later reseed/restart.
+        on_insert = dict(defaults)
+        for k in ("status", "invitedBy"):
+            if k in set_fields:
+                on_insert[k] = set_fields.pop(k)
         await db.players.update_one(
             {"id": seed["id"]},
-            {"$set": dict(seed), "$setOnInsert": defaults},
+            {"$set": set_fields, "$setOnInsert": on_insert},
             upsert=True,
         )
         count += 1

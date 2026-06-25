@@ -19,18 +19,22 @@ export default function Home() {
   const [players, setPlayers] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [pending, setPending] = useState<any[]>([]);
+  const [domains, setDomains] = useState<any>(null);
+  const [checkinDismissed, setCheckinDismissed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [r, v, ps, ms, pc] = await Promise.all([
+      const [r, v, ps, ms, pc, dm] = await Promise.all([
         api.recommendations(5),
         api.listVenues(),
         api.listPlayers(),
         api.listMatches(player?.id, 5),
         api.pendingCompletion(),
+        api.getDomains().catch(() => null),
       ]);
       setRecs(r); setVenues(v); setPlayers(ps); setMatches(ms); setPending(pc);
+      setDomains(dm?.domains || null);
     } catch {}
   }, [player?.id]);
 
@@ -47,6 +51,8 @@ export default function Home() {
   const playersById: Record<string, any> = Object.fromEntries(players.map((p) => [p.id, p]));
 
   const winRate = player.matchesPlayed > 0 ? Math.round((player.wins / player.matchesPlayed) * 100) : 0;
+  // Weekly check-in is "due" whenever any domain is currently editable.
+  const checkinDue = !!domains && Object.values(domains).some((d: any) => !d || !d.editableAt);
 
   // Players available this week — those with at least one slot matching any of my days.
   const myDays = new Set((player.availabilitySlots || []).map((s: any) => s.dayOfWeek));
@@ -74,6 +80,21 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.ink} />}
       >
+        {/* Weekly self-improvement check-in — gentle, dismissible. */}
+        {checkinDue && !checkinDismissed && (
+          <TouchableOpacity activeOpacity={0.9} testID="weekly-checkin-banner"
+            onPress={() => router.push("/skill-checkin" as any)} style={styles.checkinBanner}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.checkinTitle}>TIME FOR YOUR WEEKLY CHECK-IN</Text>
+              <Text style={styles.checkinSub}>Has anything moved? Update your four domains.  REVIEW →</Text>
+            </View>
+            <TouchableOpacity testID="checkin-dismiss" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={(e: any) => { e?.stopPropagation?.(); setCheckinDismissed(true); }}>
+              <Ionicons name="close" size={18} color={C.ink} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
+
         {/* Post-match prompt cards — surface above all content for any of
             my BOOKED games that have just transitioned to COMPLETED. */}
         {pending
@@ -140,13 +161,15 @@ export default function Home() {
 
         {/* Stat strip */}
         <View style={styles.statStrip}>
+          {/* RATING is the one accented hero tile (brand ink+lime); the rest are
+              neutral data, differentiated by label only. No decorative colour. */}
           <StatChip bg={C.ink} valueColor={C.lime} value={player.gameRating.toFixed(1)} label="RATING" testID="stat-rating" />
           <View style={styles.statDivider} />
-          <StatChip bg={C.purple} valueColor={C.white} value={player.communityRank ? `#${player.communityRank}` : "—"} label="NORTH GOA" testID="stat-rank" />
+          <StatChip bg={C.white} value={player.communityRank ? `#${player.communityRank}` : "—"} label="NORTH GOA" testID="stat-rank" />
           <View style={styles.statDivider} />
           <StatChip bg={C.white} value={String(player.matchesPlayed)} label="PLAYED" testID="stat-played" />
           <View style={styles.statDivider} />
-          <StatChip bg={C.lime} value={`${winRate}%`} label="WIN RATE" testID="stat-winrate" />
+          <StatChip bg={C.white} value={`${winRate}%`} label="WIN RATE" testID="stat-winrate" />
         </View>
 
         {/* Primary CTA */}
@@ -235,10 +258,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: BORDER, borderBottomColor: C.ink,
   },
   greet: { fontFamily: F.ub700, fontSize: 13, color: C.white, letterSpacing: 1 },
+  checkinBanner: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: C.lime, borderWidth: BORDER, borderColor: C.ink,
+    marginHorizontal: 16, marginTop: 16, padding: 12,
+  },
+  checkinTitle: { fontFamily: F.ub900, fontSize: 12, color: C.ink, letterSpacing: 0.3 },
+  checkinSub: { fontFamily: F.mono, fontSize: 10, color: C.ink, letterSpacing: 0.6, marginTop: 3 },
   statStrip: {
     flexDirection: "row",
-    backgroundColor: C.ink,
-    borderBottomWidth: BORDER, borderBottomColor: C.ink,
+    // Bring the strip into the same gutter + card system as every other Home
+    // section (16px cream gutter, 2px ink card border) instead of edge-to-edge.
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderWidth: BORDER, borderColor: C.ink,
+    backgroundColor: C.white,
   },
   statDivider: { width: BORDER, backgroundColor: C.ink },
   playerChip: { width: 80, marginRight: 10, alignItems: "center" },

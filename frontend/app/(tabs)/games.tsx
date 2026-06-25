@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { C, F, BORDER } from "../../lib/theme";
-import { Heading, MicroLabel, Pill } from "../../lib/ui";
+import { Heading, MicroLabel, Pill, Body } from "../../lib/ui";
 import { GameCard } from "../../lib/game-card";
 import { HeaderBell } from "../../lib/header-bell";
 import { api } from "../../lib/api";
@@ -94,13 +94,30 @@ export default function Games() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {games.length === 0 ? (
-          <View style={{ alignItems: "center", paddingVertical: 60 }}>
-            <Text style={styles.emptyBig}>NO GAMES MATCH</Text>
-            <Text style={styles.emptyBig}>YOUR PREFERENCES</Text>
-            <TouchableOpacity testID="games-empty-create" onPress={() => router.push("/host" as any)} style={{ marginTop: 18 }}>
-              <Text style={styles.emptyCreate}>HOST A GAME →</Text>
-            </TouchableOpacity>
-          </View>
+          (when !== "all" || tab !== "all") ? (
+            // Filtered-empty: name the active filters and offer a one-tap broaden.
+            <View style={{ alignItems: "center", paddingVertical: 60 }}>
+              <Text style={styles.emptyBig}>NO GAMES MATCH</Text>
+              <Body size={12} color={C.grey} style={{ marginTop: 8, letterSpacing: 1 }}>
+                {when.toUpperCase()} · {tab === "available" ? "AVAILABLE" : "ALL GAMES"}
+              </Body>
+              <TouchableOpacity
+                testID="games-empty-broaden"
+                onPress={() => { setWhen("all"); setTab("all"); }}
+                style={{ marginTop: 18 }}
+              >
+                <Text style={styles.emptyCreate}>SEE ALL GAMES →</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            // Genuinely empty feed (no games anywhere).
+            <View style={{ alignItems: "center", paddingVertical: 60 }}>
+              <Text style={styles.emptyBig}>NO GAMES YET</Text>
+              <TouchableOpacity testID="games-empty-create" onPress={() => router.push("/host" as any)} style={{ marginTop: 18 }}>
+                <Text style={styles.emptyCreate}>HOST A GAME →</Text>
+              </TouchableOpacity>
+            </View>
+          )
         ) : (
           games.map((g) => (
             <GameCard
@@ -110,6 +127,7 @@ export default function Games() {
               venue={venuesById[g.venueId]}
               players={playersById}
               onPress={() => router.push(`/games/${g.id}`)}
+              onPlayerPress={(pid) => router.push(`/profile/${pid}` as any)}
             />
           ))
         )}

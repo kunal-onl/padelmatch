@@ -59,11 +59,12 @@ async def write_inbox(
     n_type: str,
     game_id: Optional[str] = None,
     payload: Optional[Dict[str, Any]] = None,
+    message: str = "",
 ) -> Dict[str, Any]:
     """Insert a notification row. Returns the inserted doc.
 
     Schema (new — replacing the older `playerId`/`read` shape):
-        id, recipientId, type, gameId, payload, createdAt, readAt,
+        id, recipientId, type, gameId, message, payload, createdAt, readAt,
         deliveredPush
     """
     doc = {
@@ -73,6 +74,8 @@ async def write_inbox(
         "playerId": recipient_id,
         "type": n_type,
         "gameId": game_id,
+        # Human-readable sentence rendered verbatim by the inbox UI.
+        "message": message,
         "payload": payload or {},
         "createdAt": _now_iso(),
         "readAt": None,
@@ -156,6 +159,51 @@ async def send_push(
     return sent_any
 
 
+def _friendly_when(date_str: str, start_str: str) -> str:
+    """'2026-06-22' + '18:00' -> 'Mon 6pm'."""
+    try:
+        wd = datetime.fromisoformat(date_str).strftime("%a")
+        h, m = (int(x) for x in start_str.split(":"))
+        period = "am" if h < 12 else "pm"
+        h12 = h % 12 or 12
+        t = f"{h12}:{m:02d}{period}" if m else f"{h12}{period}"
+        return f"{wd} {t}"
+    except Exception:
+        return f"{date_str} {start_str}".strip()
+
+
+async def compose_message(
+    db: AsyncIOMotorDatabase, n_type: str, game_id: Optional[str],
+    payload: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Build a human-readable inbox sentence from a notification's context.
+
+    Used as the stored `message` for every inbox row (and to backfill old
+    rows). Looks up the game's venue name, friendly time, and host name.
+    """
+    venue_name, when, host_name = "a venue", "", "Someone"
+    if game_id:
+        game = await db.games.find_one(
+            {"id": game_id}, {"_id": 0, "venueId": 1, "date": 1, "startTime": 1, "hostId": 1})
+        if game:
+            v = await db.venues.find_one({"id": game.get("venueId")}, {"_id": 0, "name": 1})
+            venue_name = (v or {}).get("name", "a venue")
+            when = _friendly_when(game.get("date", ""), game.get("startTime", ""))
+            h = await db.players.find_one({"id": game.get("hostId")}, {"_id": 0, "name": 1})
+            host_name = (h or {}).get("name", "Someone")
+    sfx = f", {when}" if when else ""
+    templates = {
+        "invite_received":   f"{host_name} invited you to {venue_name}{sfx}",
+        "invite_accepted":   f"A player is in for {venue_name}{sfx}",
+        "near_miss_received": f"A player would play {venue_name} if conditions change",
+        "game_booked":       f"Your game at {venue_name} is booked{sfx}",
+        "game_cancelled":    f"Game at {venue_name}{sfx} was cancelled",
+        "score_prompt":      f"How did your game at {venue_name} go? Enter the score →",
+        "game_opened":       f"A game at {venue_name} just opened{sfx}",
+    }
+    return templates.get(n_type, f"Update on your game at {venue_name}")
+
+
 async def emit(
     db: AsyncIOMotorDatabase,
     *,
@@ -177,12 +225,15 @@ async def emit(
     if deep_link:
         full_payload["deepLink"] = deep_link
 
+    message = await compose_message(db, n_type, game_id, full_payload)
+
     notif = await write_inbox(
         db,
         recipient_id=recipient_id,
         n_type=n_type,
         game_id=game_id,
         payload=full_payload,
+        message=message,
     )
 
     if n_type in PUSH_TYPES:

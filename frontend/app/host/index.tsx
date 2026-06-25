@@ -184,12 +184,12 @@ export default function HostGame() {
         {step === 2 && (
           <>
             <Body size={12} color={C.grey} style={{ marginBottom: 12 }}>
-              {date.toUpperCase()} · {startTime}–{endTime}
+              {shortDay(date)} · {startTime}–{endTime}
             </Body>
             {loadingAvail && (
               <View style={styles.loaderBlock}>
                 <ActivityIndicator size="large" color={C.ink} />
-                <Text style={styles.loaderText}>CHECKING 8 VENUES…</Text>
+                <Text style={styles.loaderText}>CHECKING 9 VENUES…</Text>
                 <Body size={11} color={C.grey} style={{ marginTop: 6 }}>~40 SEC</Body>
               </View>
             )}

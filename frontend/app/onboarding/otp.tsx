@@ -82,7 +82,7 @@ export default function Otp() {
       const data = await res.json();
       if (!res.ok || !data?.verified) throw new Error(data?.detail || "Invalid code");
       await saveDraft({ phone, whatsappVerified: true });
-      router.replace("/onboarding/reveal");
+      router.replace("/onboarding/domains");
     } catch (e: any) {
       Alert.alert("Couldn't verify", e.message ?? "Try again");
     } finally {

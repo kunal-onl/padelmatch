@@ -33,12 +33,14 @@ export function GameCard({
   venue,
   players,
   onPress,
+  onPlayerPress,
   testID,
 }: {
   game: any;
   venue: any;
   players: Record<string, any>;
   onPress: () => void;
+  onPlayerPress?: (playerId: string) => void;
   testID?: string;
 }) {
   const visual = getVisual(game.status);
@@ -95,16 +97,24 @@ export function GameCard({
 
         <View style={styles.playersRow}>
           {(game.players || []).slice(0, 4).map((pid: string) => (
-            <Avatar key={pid} name={players[pid]?.name || pid} size={26} style={{ marginRight: -6 }} />
+            <TouchableOpacity
+              key={pid}
+              testID={`game-player-${pid}`}
+              onPress={(e?: any) => { e?.stopPropagation?.(); onPlayerPress?.(pid); }}
+              disabled={!onPlayerPress}
+              activeOpacity={0.7}
+              style={{ marginRight: -6 }}
+            >
+              <Avatar name={players[pid]?.name || pid} size={26} />
+            </TouchableOpacity>
           ))}
-          {Array.from({ length: Math.max(0, 4 - (game.players?.length || 0)) }).map((_, i) => (
-            <View key={`empty-${i}`} style={styles.emptySlot} />
-          ))}
-          <Text style={styles.openSpots}>
-            {game.status === "PLANNING"
-              ? `${4 - (game.players?.length || 0)} OPEN`
-              : `${game.players?.length || 0}/4`}
-          </Text>
+          <View style={styles.slotPill}>
+            <Text style={styles.slotPillText}>
+              {game.status === "PLANNING"
+                ? `${4 - (game.players?.length || 0)} OPEN`
+                : `${game.players?.length || 0}/4`}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -128,13 +138,9 @@ const styles = StyleSheet.create({
   typeChip: { paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
   typeChipText: { fontFamily: F.ub900, fontSize: 8, letterSpacing: 1 },
   playersRow: { flexDirection: "row", alignItems: "center", marginTop: 14 },
-  emptySlot: {
-    width: 26, height: 26,
-    borderWidth: 1.5, borderStyle: "dashed", borderColor: C.grey,
-    marginRight: -6, backgroundColor: "transparent",
+  slotPill: {
+    marginLeft: 14, paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: BORDER, borderColor: C.ink, backgroundColor: C.cream,
   },
-  openSpots: {
-    fontFamily: F.mono, fontSize: 10, color: C.grey, letterSpacing: 1.2,
-    marginLeft: 12,
-  },
+  slotPillText: { fontFamily: F.mono, fontSize: 10, color: C.ink, letterSpacing: 1.2 },
 });

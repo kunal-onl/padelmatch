@@ -34,7 +34,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 log = logging.getLogger("availability")
 
-# ── Configuration ─────────────────────────────────────────────────────
+# ── Configuration ─────────────────────────────────────────────────────────────
 FINDER_BASE_URL = os.environ.get("FINDER_BASE_URL", "").strip()
 FINDER_MODE = (
     os.environ.get("FINDER_MODE", "").strip().lower()
@@ -58,7 +58,7 @@ VENUE_NAME_TO_ID: Dict[str, str] = {
 }
 
 
-# ── Time format helpers ───────────────────────────────────────────────
+# ── Time format helpers ───────────────────────────────────────
 def to_12h(t24: str) -> str:
     """'18:30' -> '06:30 PM'. Finder expects 12h."""
     h, m = (int(x) for x in t24.split(":"))
@@ -83,7 +83,7 @@ def to_24h(t12: str) -> str:
         return t12
 
 
-# ── Stub finder ───────────────────────────────────────────────────────
+# ── Stub finder ─────────────────────────────────────────
 def _stub_finder(date: str, start24: str, end24: str) -> Dict[str, Any]:
     """Deterministic synthetic availability for development.
 
@@ -128,7 +128,7 @@ def _venue_area_hint(name: str) -> str:
     }.get(name, "Goa")
 
 
-# ── Live finder client ────────────────────────────────────────────────
+# ── Live finder client ────────────────────────────────────────
 async def _call_live(date: str, start24: str, end24: str) -> Dict[str, Any]:
     url = f"{FINDER_BASE_URL.rstrip('/')}/api/courts/search"
     body = {
@@ -136,7 +136,7 @@ async def _call_live(date: str, start24: str, end24: str) -> Dict[str, Any]:
         "startTime": to_12h(start24),
         "endTime": to_12h(end24),
     }
-    async with httpx.AsyncClient(timeout=90.0) as c:
+    async with httpx.AsyncClient(timeout=150.0) as c:
         r = await c.post(url, json=body)
         r.raise_for_status()
         return r.json()
@@ -166,7 +166,7 @@ def _map_finder_response(resp: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
-# ── Cache + public API ────────────────────────────────────────────────
+# ── Cache + public API ────────────────────────────────────────
 async def ensure_cache_indexes(db: AsyncIOMotorDatabase) -> None:
     """Create the TTL index on the cache collection (idempotent)."""
     await db.availability_cache.create_index(

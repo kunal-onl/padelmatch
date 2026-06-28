@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 import os
 import random
@@ -242,3 +243,102 @@ async def get_or_fetch(
         "source": "finder" if FINDER_MODE == "live" else "stub",
         "mode": FINDER_MODE,
     }
+
+
+# ── Streaming (Server-Sent Events) ────────────────────────────────────
+# Relays the finder's per-venue stream to the Courts tab so it fills in live.
+# In stub mode it synthesizes the same event shape. Events:
+#   meta  -> {venues:[{venueId,venueName,location}], total, mode, source}
+#   venue -> one option {venueId,venueName,location,time,price,hudleUrl,available}
+#   done  -> {count, source}
+def _sse(event: str, data: Any) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+async def _write_cache(db, date: str, start24: str, end24: str,
+                       options: List[Dict[str, Any]]) -> None:
+    """Persist a streamed run into the same cache /availability/check reads, so a
+    following check is instant and consistent."""
+    key = f"{date}|{start24}|{end24}"
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=CACHE_TTL_MINUTES)
+    try:
+        await db.availability_cache.update_one(
+            {"_id": key},
+            {"$set": {
+                "fetchedAtIso": now.isoformat(),
+                "expiresAtIso": expires_at.isoformat(),
+                "expiresAt": expires_at,
+                "options": options,
+                "mode": FINDER_MODE,
+            }},
+            upsert=True,
+        )
+    except Exception:
+        log.exception("availability: stream cache write failed")
+
+
+async def stream_availability(db, date: str, start24: str, end24: str):
+    """Async generator of SSE frames for the Courts tab live view."""
+    names = list(VENUE_NAME_TO_ID.keys())
+    source = "finder" if FINDER_MODE == "live" else "stub"
+    yield _sse("meta", {
+        "venues": [{"venueId": VENUE_NAME_TO_ID[n], "venueName": n,
+                    "location": _venue_area_hint(n)} for n in names],
+        "total": len(names), "mode": FINDER_MODE, "source": source,
+    })
+
+    options_by_id: Dict[str, Dict[str, Any]] = {}
+
+    # ── Stub: synthesize a gentle live stream ──
+    if FINDER_MODE != "live":
+        raw = _stub_finder(date, start24, end24)
+        for c in raw.get("courts", []):
+            opt = {k: c.get(k) for k in
+                   ("venueId", "venueName", "location", "time", "price", "hudleUrl", "available")}
+            options_by_id[opt["venueId"]] = opt
+            yield _sse("venue", opt)
+            await asyncio.sleep(0.25)
+        await _write_cache(db, date, start24, end24, list(options_by_id.values()))
+        yield _sse("done", {"count": len(options_by_id), "source": "stub"})
+        return
+
+    # ── Live: relay the finder's SSE, mapping venueName -> venueId ──
+    url = f"{FINDER_BASE_URL.rstrip('/')}/api/courts/stream"
+    params = {"date": date, "startTime": to_12h(start24), "endTime": to_12h(end24)}
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            async with client.stream("GET", url, params=params) as r:
+                r.raise_for_status()
+                event = None
+                async for line in r.aiter_lines():
+                    if line.startswith("event:"):
+                        event = line[6:].strip()
+                    elif line.startswith("data:"):
+                        try:
+                            data = json.loads(line[5:].strip())
+                        except Exception:
+                            continue
+                        if event == "venue":
+                            vid = VENUE_NAME_TO_ID.get(data.get("venueName"))
+                            if not vid:
+                                continue
+                            opt = {
+                                "venueId": vid,
+                                "venueName": data.get("venueName"),
+                                "location": data.get("location"),
+                                "time": data.get("time"),
+                                "price": data.get("price"),
+                                "hudleUrl": data.get("hudleUrl"),
+                                "available": bool(data.get("available")),
+                            }
+                            options_by_id[vid] = opt
+                            yield _sse("venue", opt)
+                        elif event == "done":
+                            break
+        await _write_cache(db, date, start24, end24, list(options_by_id.values()))
+        yield _sse("done", {"count": len(options_by_id), "source": "finder"})
+    except Exception as e:
+        log.exception("availability: stream relay failed: %s", e)
+        yield _sse("error", {"error": str(e)})
+        yield _sse("done", {"count": len(options_by_id), "source": "error"})

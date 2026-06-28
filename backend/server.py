@@ -1333,6 +1333,22 @@ async def availability_check(body: AvailabilityCheck,
     return snap
 
 
+@api.get("/availability/stream")
+async def availability_stream(date: str, start: str, end: str):
+    """Server-Sent Events stream for the Courts tab: emits each venue's
+    availability as the finder resolves it, so the UI fills in live. GET (so an
+    EventSource can open it); times are 24h (HH:MM). Relays the finder stream and
+    caches the assembled result. Falls back gracefully on the client to
+    POST /availability/check if streaming is unavailable."""
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        availability.stream_availability(db, date, start, end),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
+                 "Connection": "keep-alive"},
+    )
+
+
 # ── Push token registration (Track D) ──────────────────────────────────
 @api.post("/players/me/push-token")
 async def register_push_token(body: PushTokenBody,

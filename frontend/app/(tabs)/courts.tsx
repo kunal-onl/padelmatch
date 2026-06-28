@@ -2,10 +2,11 @@
 // design system. Replaces the old iframe embed of the external finder so the
 // tab is visually consistent with the rest of the app.
 //
-// Calls the app backend POST /api/availability/check, which proxies to the
-// court-finder service (or returns sample data in stub mode) and caches for
-// ~8 minutes. All UI is composed from the shared lib/ui components.
-import React, { useState } from "react";
+// Live view: opens an SSE stream (GET /api/availability/stream) so each venue's
+// result fills in as the finder resolves it. Falls back to the one-shot
+// POST /api/availability/check (api.availabilityCheck) when EventSource isn't
+// available (native) or the stream fails — so the tab always works.
+import React, { useEffect, useRef, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Linking,
 } from "react-native";
@@ -48,23 +49,36 @@ const SOURCE_TAG: Record<string, { label: string; color: string }> = {
   error: { label: "ERROR", color: C.coral },
 };
 
+type Opt = {
+  venueId: string; venueName: string; location?: string; time?: string;
+  price?: number | string | null; hudleUrl?: string | null;
+  available?: boolean; checking?: boolean;
+};
+type Snap = { options: Opt[]; source: string; streaming?: boolean; total?: number };
+
 export default function Courts() {
   const [dayOffset, setDayOffset] = useState(0);
   const [startTime, setStartTime] = useState("18:00");
   const [duration, setDuration] = useState(90);
   const [loading, setLoading] = useState(false);
-  const [snap, setSnap] = useState<any | null>(null);
+  const [snap, setSnap] = useState<Snap | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const esRef = useRef<any>(null);
 
   const date = nextDateFor(dayOffset);
   const endTime = endFor(startTime, duration);
 
-  const search = async (force = false) => {
+  // Always clean up any open stream on unmount.
+  useEffect(() => () => { try { esRef.current?.close?.(); } catch {} }, []);
+
+  // One-shot fallback (the original, proven path).
+  const searchOnce = async (force = false) => {
     setLoading(true);
     setError(null);
     if (!force) setSnap(null);
     try {
-      setSnap(await api.availabilityCheck(date, startTime, endTime, force));
+      const s = await api.availabilityCheck(date, startTime, endTime, force);
+      setSnap({ options: s.options || [], source: s.source });
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -72,10 +86,90 @@ export default function Courts() {
     }
   };
 
+  // Live streaming search (web). Falls back to searchOnce on any problem.
+  const search = (force = false) => {
+    // Force-refresh and non-web both use the proven one-shot path.
+    const base = process.env.EXPO_PUBLIC_BACKEND_URL;
+    if (force || typeof EventSource === "undefined" || !base) {
+      return searchOnce(force);
+    }
+
+    try { esRef.current?.close?.(); } catch {}
+    setLoading(true);
+    setError(null);
+    setSnap(null);
+
+    const url = `${base}/api/availability/stream?date=${encodeURIComponent(date)}`
+      + `&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`;
+
+    let opened = false;     // got at least a meta/venue event
+    let done = false;       // saw the done event
+    let es: any;
+    try {
+      es = new EventSource(url);
+    } catch {
+      return searchOnce(false);
+    }
+    esRef.current = es;
+
+    const finish = (source?: string) => {
+      done = true;
+      setLoading(false);
+      setSnap((prev) => prev ? {
+        ...prev, streaming: false,
+        options: prev.options.map((o) => ({ ...o, checking: false })),
+        source: source || prev.source,
+      } : prev);
+      try { es.close(); } catch {}
+    };
+
+    es.addEventListener("meta", (ev: any) => {
+      opened = true;
+      try {
+        const d = JSON.parse(ev.data);
+        const opts: Opt[] = (d.venues || []).map((v: any) => ({ ...v, checking: true, available: false }));
+        setSnap({ options: opts, source: d.source || "finder", streaming: true, total: d.total });
+      } catch {}
+    });
+
+    es.addEventListener("venue", (ev: any) => {
+      opened = true;
+      try {
+        const v: Opt = JSON.parse(ev.data);
+        setSnap((prev) => {
+          const base0: Snap = prev || { options: [], source: "finder", streaming: true };
+          const idx = base0.options.findIndex((o) => o.venueId === v.venueId);
+          const next = idx >= 0
+            ? base0.options.map((o, i) => (i === idx ? { ...v, checking: false } : o))
+            : [...base0.options, { ...v, checking: false }];
+          return { ...base0, options: next };
+        });
+      } catch {}
+    });
+
+    es.addEventListener("done", (ev: any) => {
+      let source: string | undefined;
+      try { source = JSON.parse(ev.data)?.source; } catch {}
+      finish(source);
+    });
+
+    es.addEventListener("error", () => {
+      if (done) return;            // normal close after done — ignore
+      try { es.close(); } catch {}
+      if (!opened) { searchOnce(false); return; }   // never connected → fallback
+      finish();                    // partial data → finalize with what we have
+    });
+  };
+
   const options = snap?.options || [];
-  const available = options.filter((o: any) => o.available);
-  const unavailable = options.filter((o: any) => !o.available);
-  const tag = snap ? SOURCE_TAG[snap.source] : null;
+  const checking = options.filter((o) => o.checking);
+  const available = options.filter((o) => o.available && !o.checking);
+  const unavailable = options.filter((o) => !o.available && !o.checking);
+  const resolved = options.length - checking.length;
+  const streaming = !!snap?.streaming;
+  const tag = snap ? (SOURCE_TAG[snap.source] || (streaming ? SOURCE_TAG.finder : null)) : null;
+  // Show the big loader only before any card exists.
+  const showLoader = loading && (!snap || options.length === 0);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -83,7 +177,7 @@ export default function Courts() {
         <Heading size={24} color={C.white}>FIND A COURT</Heading>
         <View style={{ height: 6 }} />
         <MicroLabel color="rgba(255,255,255,0.55)">
-          CHECKS ALL {VENUE_COUNT} NORTH GOA VENUES · ~40 SECONDS
+          CHECKS ALL {VENUE_COUNT} NORTH GOA VENUES · LIVE
         </MicroLabel>
         <View style={styles.limeRule} />
       </View>
@@ -121,11 +215,11 @@ export default function Courts() {
           {to12h(startTime)} – {to12h(endTime)} · {dayLabel(dayOffset)}
         </Body>
 
-        {loading && (
+        {showLoader && (
           <View style={styles.loaderBlock}>
             <ActivityIndicator size="large" color={C.ink} />
             <Text style={styles.loaderText}>CHECKING {VENUE_COUNT} VENUES…</Text>
-            <Body size={11} color={C.grey} style={{ marginTop: 6 }}>HANG TIGHT · ~40 SEC</Body>
+            <Body size={11} color={C.grey} style={{ marginTop: 6 }}>READING LIVE FROM HUDLE</Body>
           </View>
         )}
 
@@ -136,24 +230,29 @@ export default function Courts() {
           </View>
         )}
 
-        {!loading && snap && !error && (
+        {snap && !error && options.length > 0 && (
           <>
             <View style={styles.resultHead}>
-              <MicroLabel>{available.length} AVAILABLE</MicroLabel>
-              {tag && (
-                <View style={[styles.tag, { borderColor: tag.color }]}>
-                  <Text style={[styles.tagTxt, { color: tag.color === C.lime ? C.ink : tag.color }]}>{tag.label}</Text>
-                </View>
-              )}
+              <MicroLabel>
+                {streaming ? `CHECKED ${resolved}/${snap.total ?? options.length}` : `${available.length} AVAILABLE`}
+              </MicroLabel>
+              <View style={styles.headRight}>
+                {streaming && <ActivityIndicator size="small" color={C.ink} style={{ marginRight: 8 }} />}
+                {tag && (
+                  <View style={[styles.tag, { borderColor: tag.color }]}>
+                    <Text style={[styles.tagTxt, { color: tag.color === C.lime ? C.ink : tag.color }]}>{tag.label}</Text>
+                  </View>
+                )}
+              </View>
             </View>
 
-            {available.length === 0 && (
+            {!streaming && available.length === 0 && (
               <Body size={12} color={C.grey} style={{ marginTop: 10 }}>
                 No courts open in this window. Try another time or day.
               </Body>
             )}
 
-            {available.map((o: any) => {
+            {available.map((o) => {
               const slots = String(o.time || "").split(/,\s*/).filter(Boolean).slice(0, 8);
               return (
                 <View key={o.venueId} style={styles.card}>
@@ -177,7 +276,7 @@ export default function Courts() {
                     )}
                     {o.hudleUrl && (
                       <TouchableOpacity style={styles.bookBtn} activeOpacity={0.85}
-                        onPress={() => Linking.openURL(o.hudleUrl)}>
+                        onPress={() => Linking.openURL(o.hudleUrl!)}>
                         <Text style={styles.bookTxt}>BOOK ON HUDLE</Text>
                         <Ionicons name="open-outline" size={14} color={C.lime} style={{ marginLeft: 6 }} />
                       </TouchableOpacity>
@@ -187,11 +286,25 @@ export default function Courts() {
               );
             })}
 
-            {unavailable.length > 0 && (
+            {/* While streaming, show the venues still being checked. */}
+            {streaming && checking.map((o) => (
+              <View key={o.venueId} style={[styles.card, styles.cardChecking]}>
+                <View style={[styles.cardBand, { backgroundColor: "rgba(0,0,0,0.12)" }]} />
+                <View style={[styles.cardTop, { padding: 14 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.venue, { color: C.grey }]}>{o.venueName?.toUpperCase()}</Text>
+                    <Text style={styles.meta}>{(o.location || "GOA").toUpperCase()}</Text>
+                  </View>
+                  <ActivityIndicator size="small" color={C.grey} />
+                </View>
+              </View>
+            ))}
+
+            {!streaming && unavailable.length > 0 && (
               <>
                 <MicroLabel style={{ marginTop: 18 }}>FULLY BOOKED</MicroLabel>
                 <View style={styles.dimWrap}>
-                  {unavailable.map((o: any) => (
+                  {unavailable.map((o) => (
                     <View key={o.venueId} style={styles.dimChip}>
                       <Text style={styles.dimTxt}>{o.venueName?.toUpperCase()}</Text>
                     </View>
@@ -200,10 +313,12 @@ export default function Courts() {
               </>
             )}
 
-            <TouchableOpacity onPress={() => search(true)} style={styles.refreshBtn} activeOpacity={0.8}>
-              <Ionicons name="refresh" size={16} color={C.ink} />
-              <Text style={styles.refreshTxt}>FORCE REFRESH</Text>
-            </TouchableOpacity>
+            {!streaming && (
+              <TouchableOpacity onPress={() => search(true)} style={styles.refreshBtn} activeOpacity={0.8}>
+                <Ionicons name="refresh" size={16} color={C.ink} />
+                <Text style={styles.refreshTxt}>FORCE REFRESH</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
 
@@ -232,9 +347,11 @@ const styles = StyleSheet.create({
   loaderText: { fontFamily: F.ub900, fontSize: 14, letterSpacing: 1.4, color: C.ink, marginTop: 10 },
   errorBox: { marginTop: 20, backgroundColor: C.white, borderWidth: BORDER, borderColor: C.coral, padding: 14 },
   resultHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 22 },
+  headRight: { flexDirection: "row", alignItems: "center" },
   tag: { borderWidth: 1.5, paddingHorizontal: 8, paddingVertical: 3 },
   tagTxt: { fontFamily: F.mono, fontSize: 9, letterSpacing: 1.6 },
   card: { backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink, marginTop: 10 },
+  cardChecking: { borderColor: "rgba(0,0,0,0.25)" },
   cardBand: { height: 6, backgroundColor: C.lime },
   cardTop: { flexDirection: "row", alignItems: "flex-start" },
   venue: { fontFamily: F.ub900, fontSize: 16, letterSpacing: -0.4, color: C.ink },

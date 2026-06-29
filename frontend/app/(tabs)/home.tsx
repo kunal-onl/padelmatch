@@ -1,5 +1,10 @@
-// Home / Dashboard.
-import React, { useCallback, useEffect, useState } from "react";
+// Home — the loop's spine surface. Leads with ORIENTATION (where you are right
+// now — the calibration reading) and WHAT-NEEDS-YOU (slim routing items), and is
+// the notification routing hub (the bell + each item routes into the relevant
+// surface). IA refactor: post-game actions are now slim rows that route into the
+// game (where the lifecycle stepper handles scoring/reflection/rating) — NOT
+// full-height hero cards stacked above orientation.
+import React, { useCallback, useState } from "react";
 import { View, ScrollView, Text, StyleSheet, RefreshControl, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -51,10 +56,8 @@ export default function Home() {
   const playersById: Record<string, any> = Object.fromEntries(players.map((p) => [p.id, p]));
 
   const winRate = player.matchesPlayed > 0 ? Math.round((player.wins / player.matchesPlayed) * 100) : 0;
-  // Weekly check-in is "due" whenever any domain is currently editable.
   const checkinDue = !!domains && Object.values(domains).some((d: any) => !d || !d.editableAt);
 
-  // Players available this week — those with at least one slot matching any of my days.
   const myDays = new Set((player.availabilitySlots || []).map((s: any) => s.dayOfWeek));
   const available = players
     .filter((p) => p.id !== player.id && (p.availabilitySlots || []).some((s: any) => myDays.has(s.dayOfWeek)))
@@ -64,9 +67,19 @@ export default function Home() {
     [...m.pairA, ...m.pairB].includes(player.id) && m.status === "scored",
   ).slice(0, 3);
 
+  // What needs you — booked games that just finished and still want a reading.
+  const needsYou = pending
+    .filter((g) => !(g.promptDismissedBy || []).includes(player.id))
+    .filter((g) => {
+      const scored = (g.scoresSubmittedBy || []).includes(player.id);
+      const reflected = (g.reflectionsBy || []).includes(player.id);
+      const rated = (g.peerRatingsBy || []).includes(player.id);
+      return !(scored && reflected && rated);
+    });
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      {/* Top ink header */}
+      {/* Top ink header — greeting + the notification routing hub. */}
       <View style={styles.header}>
         <Text style={styles.greet}>
           {greeting()}, {player.name.split(" ")[0].toUpperCase()}
@@ -80,7 +93,19 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.ink} />}
       >
-        {/* Weekly self-improvement check-in — gentle, dismissible. */}
+        {/* Orientation — where you are right now; leads the page. RATING is the
+            one accented hero tile; the rest are neutral data. */}
+        <View style={styles.statStrip}>
+          <StatChip bg={C.ink} valueColor={C.lime} value={player.gameRating.toFixed(1)} label="RATING" testID="stat-rating" />
+          <View style={styles.statDivider} />
+          <StatChip bg={C.white} value={player.communityRank ? `#${player.communityRank}` : "—"} label="NORTH GOA" testID="stat-rank" />
+          <View style={styles.statDivider} />
+          <StatChip bg={C.white} value={String(player.matchesPlayed)} label="PLAYED" testID="stat-played" />
+          <View style={styles.statDivider} />
+          <StatChip bg={C.white} value={`${winRate}%`} label="WIN RATE" testID="stat-winrate" />
+        </View>
+
+        {/* Weekly self-improvement check-in — what you're working on. */}
         {checkinDue && !checkinDismissed && (
           <TouchableOpacity activeOpacity={0.9} testID="weekly-checkin-banner"
             onPress={() => router.push("/skill-checkin" as any)} style={styles.checkinBanner}>
@@ -95,86 +120,35 @@ export default function Home() {
           </TouchableOpacity>
         )}
 
-        {/* Post-match prompt cards — surface above all content for any of
-            my BOOKED games that have just transitioned to COMPLETED. */}
-        {pending
-          .filter((g) => !(g.promptDismissedBy || []).includes(player.id))
-          .filter((g) => {
-            const scored = (g.scoresSubmittedBy || []).includes(player.id);
-            const reflected = (g.reflectionsBy || []).includes(player.id);
-            const rated = (g.peerRatingsBy || []).includes(player.id);
-            return !(scored && reflected && rated);
-          })
-          .map((g) => {
-            const v = venuesById[g.venueId];
-            const dateLabel = (() => {
-              try { return new Date(g.date).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }).toUpperCase(); } catch { return g.date; }
-            })();
-            const scored = (g.scoresSubmittedBy || []).includes(player.id);
-            const reflected = (g.reflectionsBy || []).includes(player.id);
-            const rated = (g.peerRatingsBy || []).includes(player.id);
-            const row = (label: string, done: boolean, href: string, tid: string) => (
-              <TouchableOpacity
-                key={label}
-                testID={tid}
-                onPress={() => router.push(href)}
-                style={pmStyles.row}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={done ? "checkmark-circle" : "ellipse-outline"}
-                  size={18}
-                  color={done ? C.lime : "rgba(255,255,255,0.55)"}
-                />
-                <Text style={[pmStyles.rowText, done && { color: "rgba(255,255,255,0.55)", textDecorationLine: "line-through" }]}>
-                  {label}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.55)" />
-              </TouchableOpacity>
-            );
-            return (
-              <View key={g.id} style={pmStyles.card} testID={`postmatch-prompt-${g.id}`}>
-                <View style={pmStyles.leftAccent} />
-                <View style={{ flex: 1, padding: 16 }}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <Text style={pmStyles.title}>HOW DID IT GO?</Text>
-                    <TouchableOpacity
-                      testID={`postmatch-dismiss-${g.id}`}
-                      onPress={async () => {
-                        try { await api.dismissPrompt(g.id, true); load(); } catch {}
-                      }}
-                    >
-                      <Text style={pmStyles.dismiss}>LATER</Text>
-                    </TouchableOpacity>
+        {/* Needs you — slim routing rows into the game (where the lifecycle
+            stepper handles scoring/reflection/rating). Not full-height cards. */}
+        {needsYou.length > 0 && (
+          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
+            <Heading size={11}>NEEDS YOU</Heading>
+            <View style={{ height: 8 }} />
+            {needsYou.map((g) => {
+              const v = venuesById[g.venueId];
+              const dateLabel = (() => {
+                try { return new Date(g.date).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }).toUpperCase(); } catch { return g.date; }
+              })();
+              return (
+                <TouchableOpacity key={g.id} testID={`needs-${g.id}`} activeOpacity={0.85}
+                  onPress={() => router.push(`/games/${g.id}`)} style={styles.needsRow}>
+                  <View style={styles.needsAccent} />
+                  <View style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 12 }}>
+                    <Text style={styles.needsTitle}>HOW DID IT GO?</Text>
+                    <Text style={styles.needsMeta}>{(v?.name || "VENUE").toUpperCase()} · {dateLabel}</Text>
                   </View>
-                  <Text style={pmStyles.meta}>
-                    {(v?.name || "VENUE").toUpperCase()} · {dateLabel} · {g.startTime}–{g.endTime}
-                  </Text>
-                  <View style={{ height: 12 }} />
-                  {row("ENTER SCORES",      scored,    `/score/${g.matchId || g.id}?gameId=${g.id}`, `pm-scores-${g.id}`)}
-                  {row("SELF-REFLECT",      reflected, `/reflect/${g.id}`,                            `pm-reflect-${g.id}`)}
-                  {row("RATE YOUR PARTNERS", rated,    `/feedback/${g.id}`,                           `pm-rate-${g.id}`)}
-                </View>
-              </View>
-            );
-          })}
-
-        {/* Stat strip */}
-        <View style={styles.statStrip}>
-          {/* RATING is the one accented hero tile (brand ink+lime); the rest are
-              neutral data, differentiated by label only. No decorative colour. */}
-          <StatChip bg={C.ink} valueColor={C.lime} value={player.gameRating.toFixed(1)} label="RATING" testID="stat-rating" />
-          <View style={styles.statDivider} />
-          <StatChip bg={C.white} value={player.communityRank ? `#${player.communityRank}` : "—"} label="NORTH GOA" testID="stat-rank" />
-          <View style={styles.statDivider} />
-          <StatChip bg={C.white} value={String(player.matchesPlayed)} label="PLAYED" testID="stat-played" />
-          <View style={styles.statDivider} />
-          <StatChip bg={C.white} value={`${winRate}%`} label="WIN RATE" testID="stat-winrate" />
-        </View>
+                  <Ionicons name="chevron-forward" size={18} color={C.ink} style={{ marginRight: 12 }} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         {/* Primary CTA */}
         <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
-          <SplitCTA testID="cta-find-game" label="FIND A GAME" intent="forward" onPress={() => router.push("/(tabs)/games")} />
+          <SplitCTA testID="cta-find-game" label="FIND A GAME" intent="forward" onPress={() => router.push("/(tabs)/play" as any)} />
         </View>
 
         {/* Strong matches */}
@@ -265,10 +239,16 @@ const styles = StyleSheet.create({
   },
   checkinTitle: { fontFamily: F.ub900, fontSize: 12, color: C.ink, letterSpacing: 0.3 },
   checkinSub: { fontFamily: F.mono, fontSize: 10, color: C.ink, letterSpacing: 0.6, marginTop: 3 },
+  needsRow: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink,
+    marginBottom: 8,
+  },
+  needsAccent: { width: 4, alignSelf: "stretch", backgroundColor: C.lime },
+  needsTitle: { fontFamily: F.ub700, fontSize: 13, color: C.ink, letterSpacing: 0.3 },
+  needsMeta: { fontFamily: F.mono, fontSize: 10, color: C.grey, letterSpacing: 1, marginTop: 3 },
   statStrip: {
     flexDirection: "row",
-    // Bring the strip into the same gutter + card system as every other Home
-    // section (16px cream gutter, 2px ink card border) instead of edge-to-edge.
     marginHorizontal: 16,
     marginTop: 16,
     borderWidth: BORDER, borderColor: C.ink,
@@ -288,26 +268,4 @@ const styles = StyleSheet.create({
   resultScore: { fontFamily: F.mono, fontSize: 13, color: C.ink, marginHorizontal: 8 },
   resultBadge: { paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: C.ink },
   resultBadgeText: { fontFamily: F.ub900, fontSize: 9, color: C.white, letterSpacing: 0.6 },
-});
-
-const pmStyles = StyleSheet.create({
-  card: {
-    flexDirection: "row",
-    backgroundColor: C.ink,
-    marginHorizontal: 16, marginTop: 14,
-    borderWidth: BORDER, borderColor: C.ink,
-  },
-  leftAccent: { width: 4, backgroundColor: C.lime },
-  title: { fontFamily: F.ub700, fontSize: 14, color: C.white, letterSpacing: 0.5 },
-  dismiss: { fontFamily: F.mono, fontSize: 9, color: "rgba(255,255,255,0.55)", letterSpacing: 1.4 },
-  meta: { fontFamily: F.mono, fontSize: 10, color: "rgba(255,255,255,0.7)", letterSpacing: 1.2, marginTop: 6 },
-  row: {
-    flexDirection: "row", alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1, borderColor: "rgba(255,255,255,0.15)",
-  },
-  rowText: {
-    flex: 1, marginLeft: 10,
-    fontFamily: F.ub700, fontSize: 12, color: C.white, letterSpacing: 0.6,
-  },
 });

@@ -1,4 +1,6 @@
-// Players directory — community roster.
+// Community — the social roster (belonging; the connective tissue of the spine).
+// (Was the "Players" tab; renamed in the IA refactor. Functionality unchanged —
+// the Recommended/Social/Rankings sub-tabs are a separate spec.)
 //
 // Visibility rules (locked Feb 2026):
 //   1a  Everyone in the community sees all `active` + `invited` members.
@@ -28,7 +30,7 @@ const STATUS_COLOR: Record<string, string> = {
   ghost: C.purple,
 };
 
-export default function Players() {
+export default function Community() {
   const router = useRouter();
   const { player: me } = usePlayer();
   const [players, setPlayers] = useState<any[]>([]);
@@ -91,7 +93,7 @@ export default function Players() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <Heading size={20}>PLAYERS</Heading>
+        <Heading size={20}>COMMUNITY</Heading>
         <Text style={styles.headerCount}>{filtered.length}</Text>
       </View>
 

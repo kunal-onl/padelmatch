@@ -260,7 +260,7 @@ export default function CreateGame() {
         )}
         {step === 3 && (
           <View style={{ flex: 1 }}>
-            <OutlineButton testID="create-done" label="DONE" onPress={() => { setStep(1); setCreated(null); setVenueId(null); setCourtId(null); router.push("/(tabs)/games"); }} />
+            <OutlineButton testID="create-done" label="DONE" onPress={() => { setStep(1); setCreated(null); setVenueId(null); setCourtId(null); router.push("/(tabs)/play" as any); }} />
           </View>
         )}
       </View>

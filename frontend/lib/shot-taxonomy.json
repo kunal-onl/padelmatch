@@ -1,0 +1,168 @@
+{
+  "_meta": {
+    "name": "PadelMatch Shot Taxonomy",
+    "version": "0.1-draft",
+    "status": "IN PROGRESS — defense band, right side. Other cells stubbed.",
+    "purpose": "Canonical, position-keyed map of padel shot vocabulary. Serves three jobs: (1) the fine-grained strokes self-assessment (player paints a comfort map onto it), (2) need-mapping for the Grow learning library (videos tag to shot nodes), (3) optional self-paced exploration surface ('what's my vocabulary from here?').",
+    "model": "Position-primary spatial grammar. 'Each position on the court has its own vocabulary.' Full-court comfort = fluency.",
+    "key_decisions": [
+      "Position is the PRIMARY axis (not difficulty).",
+      "A player occupies ONE side per match — left and right are two INDEPENDENT vocabularies, not mirror images.",
+      "Shots are defined ONCE and MAPPED to the cells they're played from (not duplicated per cell).",
+      "NO objective difficulty tier. Instead each shot carries a PER-PLAYER self-rated COMFORT score 0-6.",
+      "Comfort is per-player data (an overlay), NOT a property of the shot. Taxonomy ships once; each player paints their own comfort map.",
+      "'Off-the-glass' is NOT a family — it's a CONTACT variant axis (most defensive shots can be hit direct OR off the glass).",
+      "Variants (contact / direction / spin) are OPTIONAL depth, not counted as separate canonical nodes."
+    ]
+  },
+
+  "comfort_scale": {
+    "_note": "Per-player, self-assessed, PRIVATE. Behavioral anchors resist inflation. 0 is an AWARENESS gap (distinct learning intervention) vs 1+ which is a COMPETENCE gap.",
+    "0": "Never heard of it",
+    "1": "Very uncomfortable",
+    "2": "Uncomfortable",
+    "3": "Play it when forced",
+    "4": "Comfortable",
+    "5": "Look for it",
+    "6": "Excellent at it"
+  },
+
+  "sides": ["right", "left"],
+  "_sides_note": "Built independently. Right side built first; left side is mostly re-mapping the same canonical shots to its cells (vocabulary overlaps; cell-mapping and tactical signature differ). FH/BH assignment flips by side.",
+
+  "vertical_bands": {
+    "_note": "Net → baseline, named by TACTICAL ROLE (not by the shot played there), so a gap reads as a tactical self-diagnosis.",
+    "order_net_to_baseline": ["net", "attack-control", "recovery-transition", "defense"],
+    "net": "At the net, attacking. Put-away vocabulary (x4, finishing volleys, drops).",
+    "attack-control": "Just behind the net, still offensive. Vibora/x3, aggressive volleys.",
+    "recovery-transition": "No-man's-land. Scrambling OUT of defense back toward the net. Bandeja (holding overhead) lives here. The zone amateurs are weakest in.",
+    "defense": "Baseline / back position. Returning, or pinned while opponents are at the net. Groundstrokes, lobs, glass recovery, the bajada (offensive exit)."
+  },
+
+  "horizontal_bands": {
+    "_note": "From measured court thirds (1.66m each). Per side.",
+    "order_side_to_center": ["side", "middle", "T"],
+    "side": "Against the side wall. With 'defense' band = the back corner (double-wall vocabulary).",
+    "middle": "Central to the player's own half. The 'home' position for the band.",
+    "T": "Nearest the centre service line / the T."
+  },
+
+  "families": ["groundstroke", "lob", "touch", "overhead", "volley"],
+  "_families_note": "'off-the-glass' removed as a family — folded into the contact variant axis.",
+
+  "variant_axes": {
+    "contact": ["direct", "off-back-glass", "off-side-glass", "double-wall"],
+    "direction": ["down-the-line", "middle", "cross-court"],
+    "spin": ["flat", "topspin", "slice"],
+    "_note": "Optional depth. A fully-specified shot picks one value per applicable axis. Not all axes apply to all shots (e.g. bajada is off-glass by definition). Canonical node count ignores variants."
+  },
+
+  "shots": [
+    {
+      "id": "fh-groundstroke",
+      "name": "Forehand groundstroke",
+      "family": "groundstroke",
+      "contact_options": ["direct", "off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "topspin", "slice"]
+    },
+    {
+      "id": "bh-groundstroke",
+      "name": "Backhand groundstroke",
+      "family": "groundstroke",
+      "contact_options": ["direct", "off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "topspin", "slice"]
+    },
+    {
+      "id": "fh-lob",
+      "name": "Forehand lob",
+      "family": "lob",
+      "contact_options": ["direct", "off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "slice"]
+    },
+    {
+      "id": "bh-lob",
+      "name": "Backhand lob",
+      "family": "lob",
+      "contact_options": ["direct", "off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "slice"]
+    },
+    {
+      "id": "fh-chiquita",
+      "name": "Forehand chiquita",
+      "family": "touch",
+      "contact_options": ["direct", "off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "slice"]
+    },
+    {
+      "id": "bh-chiquita",
+      "name": "Backhand chiquita",
+      "family": "touch",
+      "contact_options": ["direct", "off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "slice"]
+    },
+    {
+      "id": "fh-bajada",
+      "name": "Forehand bajada",
+      "family": "overhead",
+      "_note": "The only OFFENSIVE off-the-glass shot from the back. Bridges defense->attack. Off-glass by definition.",
+      "contact_options": ["off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "slice"]
+    },
+    {
+      "id": "bh-bajada",
+      "name": "Backhand bajada",
+      "family": "overhead",
+      "contact_options": ["off-back-glass"],
+      "direction_options": ["down-the-line", "middle", "cross-court"],
+      "spin_options": ["flat", "slice"]
+    }
+  ],
+
+  "cells": {
+    "right": {
+      "defense-middle": {
+        "status": "POPULATED (draft)",
+        "tactical_note": "The 'home' defensive position — where you stand returning when opponents are at the net. Richest foundational cell.",
+        "shot_ids": [
+          "fh-groundstroke", "bh-groundstroke",
+          "fh-lob", "bh-lob",
+          "fh-chiquita", "bh-chiquita",
+          "fh-bajada", "bh-bajada"
+        ],
+        "open_questions": [
+          "Is a DEFENSIVE BLOCK / RESET shot (absorb pace, drop short when jammed) missing here, or does it live in another cell/band?"
+        ]
+      },
+      "defense-T": { "status": "STUB" },
+      "defense-side": { "status": "STUB", "tactical_note": "The back corner. Holds the brutal DOUBLE-WALL recovery vocabulary (contact: off-side-glass, double-wall). Hardest cell in the band." },
+      "recovery-transition-side": { "status": "STUB" },
+      "recovery-transition-middle": { "status": "STUB" },
+      "recovery-transition-T": { "status": "STUB" },
+      "attack-control-side": { "status": "STUB" },
+      "attack-control-middle": { "status": "STUB" },
+      "attack-control-T": { "status": "STUB" },
+      "net-side": { "status": "STUB" },
+      "net-middle": { "status": "STUB" },
+      "net-T": { "status": "STUB" }
+    },
+    "left": { "_status": "NOT STARTED — build after right side complete." }
+  },
+
+  "per_player_overlay_schema": {
+    "_note": "NOT part of this shared file. Documents how per-player comfort is stored separately.",
+    "PlayerShotComfort": {
+      "player_id": "string",
+      "shot_id": "string (refs shots[].id)",
+      "cell": "string (e.g. 'right/defense-middle') — comfort can be cell-specific",
+      "comfort": "int 0-6",
+      "updated_at": "timestamp (weekly-editable, dated snapshots for trajectory)"
+    }
+  }
+}

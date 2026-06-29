@@ -1,4 +1,7 @@
-// Games feed.
+// Play — flow's urgency surface: find or host a game. Court-finding lives INSIDE
+// here (a step in forming a game, not a destination): the host flow gates on
+// availability, and the standalone court browser is one tap from this header.
+// (Was the "Games" tab; renamed in the IA refactor.)
 import React, { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, Text, StyleSheet, RefreshControl, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,7 +13,7 @@ import { GameCard } from "../../lib/game-card";
 import { HeaderBell } from "../../lib/header-bell";
 import { api } from "../../lib/api";
 
-export default function Games() {
+export default function Play() {
   const router = useRouter();
   const [when, setWhen] = useState<"today" | "week" | "all">("week");
   const [tab, setTab] = useState<"available" | "all">("available");
@@ -40,9 +43,18 @@ export default function Games() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <Heading size={20}>GAMES FEED</Heading>
+        <Heading size={20}>PLAY</Heading>
         <View style={{ flex: 1 }} />
         <HeaderBell />
+        <TouchableOpacity
+          testID="play-courts-cta"
+          onPress={() => router.push("/(tabs)/courts" as any)}
+          style={styles.courtsBtn}
+          activeOpacity={0.85}
+          accessibilityLabel="Check court availability"
+        >
+          <Ionicons name="grid-outline" size={16} color={C.ink} />
+        </TouchableOpacity>
         <TouchableOpacity
           testID="games-create-cta"
           onPress={() => router.push("/host" as any)}
@@ -149,6 +161,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8,
   },
   createBtnText: { fontFamily: F.ub900, fontSize: 11, color: C.ink, letterSpacing: 1, marginLeft: 4 },
+  courtsBtn: {
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: C.cream, borderWidth: BORDER, borderColor: C.ink,
+    paddingHorizontal: 9, paddingVertical: 8, marginRight: 8,
+  },
   filterRow: { flexDirection: "row", padding: 8, backgroundColor: C.cream },
   tabsRow: { flexDirection: "row", paddingHorizontal: 8, paddingBottom: 8, backgroundColor: C.cream },
   emptyBig: { fontFamily: F.ub900, fontSize: 30, color: C.ink, letterSpacing: -1, textAlign: "center" },

@@ -10,9 +10,9 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 const TAB_META: Record<string, { icon: IconName; label: string; testID: string }> = {
   home: { icon: "home", label: "HOME", testID: "tab-home" },
-  players: { icon: "people-outline", label: "PLAYERS", testID: "tab-players" },
-  games: { icon: "tennisball", label: "GAMES", testID: "tab-games" },
-  courts: { icon: "grid-outline", label: "COURTS", testID: "tab-courts" },
+  community: { icon: "people-circle-outline", label: "COMMUNITY", testID: "tab-community" },
+  play: { icon: "tennisball", label: "PLAY", testID: "tab-play" },
+  grow: { icon: "trending-up-outline", label: "GROW", testID: "tab-grow" },
   profile: { icon: "person-circle-outline", label: "PROFILE", testID: "tab-profile" },
 };
 
@@ -24,7 +24,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         const meta = TAB_META[route.name];
         if (!meta) return null;
         const focused = state.index === index;
-        const isCenter = route.name === "games";
+        const isCenter = route.name === "play";
 
         const onPress = () => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -44,7 +44,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 <Ionicons name="tennisball" size={30} color={C.ink} />
               </View>
               <Text style={[styles.centerLabel, { color: focused ? C.lime : "rgba(255,255,255,0.55)" }]}>
-                GAMES
+                PLAY
               </Text>
             </TouchableOpacity>
           );
@@ -80,11 +80,12 @@ export default function TabsLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen name="home" />
-      <Tabs.Screen name="players" />
-      <Tabs.Screen name="games" />
-      <Tabs.Screen name="courts" />
+      <Tabs.Screen name="community" />
+      <Tabs.Screen name="play" />
+      <Tabs.Screen name="grow" />
       <Tabs.Screen name="profile" />
       {/* Hidden routes — still navigable, just not in the tab bar. */}
+      <Tabs.Screen name="courts" options={{ href: null }} />
       <Tabs.Screen name="create" options={{ href: null }} />
       <Tabs.Screen name="leaderboard" options={{ href: null }} />
     </Tabs>

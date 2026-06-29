@@ -148,6 +148,15 @@ class OnboardingDomainsIn(BaseModel):
     outer: int
 
 
+# Court-comfort map (strokes domain at fine resolution). Per-player comfort is a
+# per-(cell, shot) overlay, 0..6, private + self-assessed. Cell is e.g.
+# "right/defense-middle"; shotId refs shot-taxonomy.json shots[].id.
+class ShotComfortIn(BaseModel):
+    cell: str
+    shotId: str
+    comfort: int
+
+
 class SetScore(BaseModel):
     pairA: int
     pairB: int
@@ -1448,6 +1457,50 @@ async def post_domains_onboarding(body: OnboardingDomainsIn,
         doc.pop("_id", None)
         written.append(doc)
     return {"written": written}
+
+
+# ── Court-comfort map (per-shot, per-cell comfort overlay) ─────────────
+@api.get("/me/comfort")
+async def get_comfort(x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Current comfort map for the player. `ratings`/`first` are keyed by
+    "cell|shotId" (current value, and the first-ever value for basic before/after).
+    Private + self-only."""
+    ratings: Dict[str, int] = {}
+    first: Dict[str, int] = {}
+    cur = db.shot_comfort.find({"playerId": x_player_id}, {"_id": 0})
+    async for d in cur:
+        key = f"{d['cell']}|{d['shotId']}"
+        ratings[key] = d.get("comfort")
+        if d.get("firstComfort") is not None:
+            first[key] = d["firstComfort"]
+    return {"ratings": ratings, "first": first}
+
+
+@api.post("/me/comfort")
+async def post_comfort(body: ShotComfortIn,
+                       x_player_id: str = Header(default="kunal", alias="x-player-id")):
+    """Set comfort (0..6) for one shot in one cell. Upserts current value and
+    appends a dated snapshot (trajectory); keeps the first-ever value for
+    before/after. Self-assessed, no rate limit (a cell is rated in one sitting)."""
+    if not (0 <= body.comfort <= 6):
+        raise HTTPException(400, "comfort must be 0..6")
+    now = datetime.now(timezone.utc).isoformat()
+    existing = await db.shot_comfort.find_one(
+        {"playerId": x_player_id, "cell": body.cell, "shotId": body.shotId})
+    if existing:
+        snaps = existing.get("snapshots", [])
+        if existing.get("comfort") != body.comfort:
+            snaps = (snaps + [{"date": now, "comfort": body.comfort}])[-24:]
+        await db.shot_comfort.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"comfort": body.comfort, "updatedAt": now, "snapshots": snaps}})
+    else:
+        await db.shot_comfort.insert_one({
+            "playerId": x_player_id, "cell": body.cell, "shotId": body.shotId,
+            "comfort": body.comfort, "firstComfort": body.comfort, "firstAt": now,
+            "updatedAt": now, "snapshots": [{"date": now, "comfort": body.comfort}],
+        })
+    return {"ok": True, "cell": body.cell, "shotId": body.shotId, "comfort": body.comfort}
 
 
 class DismissBody(BaseModel):

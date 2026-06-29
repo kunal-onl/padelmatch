@@ -108,4 +108,9 @@ export const api = {
     req(`/me/domains`, { method: "POST", body: JSON.stringify({ domain, tier, source }) }),
   seedDomainsOnboarding: (tiers: { strokes: number; tactics: number; inner: number; outer: number }) =>
     req(`/me/domains/onboarding`, { method: "POST", body: JSON.stringify(tiers) }),
+
+  // Court-comfort map (per-cell, per-shot comfort overlay, 0..6, private)
+  getComfort: () => req("/me/comfort"),
+  setComfort: (cell: string, shotId: string, comfort: number) =>
+    req(`/me/comfort`, { method: "POST", body: JSON.stringify({ cell, shotId, comfort }) }),
 };

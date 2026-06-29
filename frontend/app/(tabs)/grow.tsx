@@ -17,7 +17,7 @@ import { C, F, BORDER } from "../../lib/theme";
 import { MicroLabel, StatChip, Heading, Body } from "../../lib/ui";
 import { api } from "../../lib/api";
 import { usePlayer } from "../../lib/context";
-import taxonomy from "../../lib/shot-taxonomy.json";
+import { BANDS, COLS, BAND_LABEL, cellsForSide, cellAgg, comfortColor } from "../../lib/court-comfort";
 
 // Self-Improvement Score — four independent domains (the re-scoped radar).
 const DOMAIN_AXES: { key: "strokes" | "tactics" | "inner" | "outer"; label: string }[] = [
@@ -28,22 +28,20 @@ const DOMAIN_AXES: { key: "strokes" | "tactics" | "inner" | "outer"; label: stri
 ];
 const TIER_BANDS = ["", "BEGINNER", "LATE BEGINNER", "LOWER INT.", "INTERMEDIATE", "HIGH INT.", "ADVANCED"];
 
-// Court-comfort map (shell). Short tactical-role labels for the vertical bands.
-const TAX: any = taxonomy;
-const BAND_LABEL: Record<string, string> = {
-  "net": "NET", "attack-control": "ATTACK",
-  "recovery-transition": "TRANSITION", "defense": "DEFENSE",
-};
-
 export default function Grow() {
   const router = useRouter();
   const { player, refresh } = usePlayer();
   const [domains, setDomains] = useState<any>(null);
+  const [comfort, setComfort] = useState<Record<string, number>>({});
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const d = await api.getDomains().catch(() => null);
+    const [d, cm] = await Promise.all([
+      api.getDomains().catch(() => null),
+      api.getComfort().catch(() => null),
+    ]);
     setDomains(d?.domains || null);
+    setComfort(cm?.ratings || {});
   }, []);
   useFocusEffect(useCallback(() => { refresh().then(load); }, [load, refresh]));
 
@@ -68,14 +66,12 @@ export default function Grow() {
       rated: !!domains?.[key],
     })), [domains]);
 
-  // Court-comfort cells for the player's side (default right). Render whatever
-  // the taxonomy contains; tolerate stubbed/missing cells without breaking.
-  const side = "right";
-  const courtCells = TAX?.cells?.[side] || {};
-  const bands: string[] = TAX?.vertical_bands?.order_net_to_baseline || [];
-  const cols: string[] = TAX?.horizontal_bands?.order_side_to_center || [];
-  const chartedCount = Object.values(courtCells).filter(
-    (c: any) => c && Array.isArray(c.shot_ids) && c.shot_ids.length > 0).length;
+  // Court-comfort overview (player's side, default right), colored by the
+  // player's comfort overlay. Tap-through opens the full map to rate shots.
+  const comfortCells = useMemo(() => cellsForSide("right"), []);
+  const cellByKey = useMemo(
+    () => Object.fromEntries(comfortCells.map((c) => [`${c.band}-${c.col}`, c])), [comfortCells]);
+  const chartedCount = comfortCells.filter((c) => c.shotIds.length > 0).length;
 
   if (!player) return <SafeAreaView style={styles.safe} />;
 
@@ -178,43 +174,43 @@ export default function Grow() {
           </View>
         </View>
 
-        {/* Court-comfort map (shell — renders the taxonomy's cells; rating next pass) */}
+        {/* Court-comfort map — the glance; tap to open the full map and rate. */}
         <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-          <Heading size={11}>COURT-COMFORT MAP</Heading>
-          <Body size={11} color={C.grey} style={{ marginTop: 6, lineHeight: 16 }}>
-            Where on the court do you go mute? This is your game, uncharted — start mapping your fluency by position.
-          </Body>
-          <View style={styles.courtCard}>
-            {bands.length > 0 && cols.length > 0 ? (
-              <>
-                {bands.map((band) => (
-                  <View key={band} style={styles.courtRow}>
-                    <Text style={styles.bandLabel}>{BAND_LABEL[band] || band.toUpperCase()}</Text>
-                    <View style={{ flexDirection: "row", flex: 1 }}>
-                      {cols.map((col) => {
-                        const cell = courtCells[`${band}-${col}`];
-                        const shots = cell && Array.isArray(cell.shot_ids) ? cell.shot_ids.length : 0;
-                        const charted = shots > 0;
-                        return (
-                          <View key={col} style={[styles.courtCell, charted ? styles.cellCharted : styles.cellUncharted]}>
-                            <Text style={[styles.cellCol, charted && { color: C.ink }]}>{col.toUpperCase()}</Text>
-                            <Text style={styles.cellMeta}>{charted ? `${shots} SHOTS` : "—"}</Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </View>
-                ))}
-                <Text style={styles.courtFoot}>
-                  {chartedCount > 0
-                    ? `${chartedCount} position${chartedCount > 1 ? "s" : ""} charted so far · right side · rating arrives in the next update`
-                    : "Taxonomy loading · right side"}
-                </Text>
-              </>
-            ) : (
-              <Body size={11} color={C.grey}>Court map coming soon.</Body>
-            )}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Heading size={11}>COURT-COMFORT MAP</Heading>
+            <TouchableOpacity testID="open-comfort" onPress={() => router.push("/comfort" as any)}>
+              <Text style={styles.openMap}>OPEN MAP →</Text>
+            </TouchableOpacity>
           </View>
+          <Body size={11} color={C.grey} style={{ marginTop: 6, lineHeight: 16 }}>
+            Where on the court do you go mute? Paint your fluency by position.
+          </Body>
+          <TouchableOpacity activeOpacity={0.9} testID="comfort-overview"
+            onPress={() => router.push("/comfort" as any)} style={styles.courtCard}>
+            {BANDS.map((band) => (
+              <View key={band} style={styles.courtRow}>
+                <Text style={styles.bandLabel}>{BAND_LABEL[band] || band.toUpperCase()}</Text>
+                <View style={{ flexDirection: "row", flex: 1 }}>
+                  {COLS.map((col) => {
+                    const cell = cellByKey[`${band}-${col}`];
+                    const hasShots = !!cell && cell.shotIds.length > 0;
+                    const agg = hasShots ? cellAgg(cell, comfort) : null;
+                    return (
+                      <View key={col}
+                        style={[styles.miniCell, { backgroundColor: hasShots ? comfortColor(agg!.avg) : C.cream }, !hasShots && styles.miniCellEmpty]}>
+                        <Text style={styles.miniCol}>{col.toUpperCase()}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+            <Text style={styles.courtFoot}>
+              {chartedCount > 0
+                ? `${chartedCount} position${chartedCount > 1 ? "s" : ""} on your right side · tap to rate`
+                : "Right side · tap to start mapping"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Shot library — optional exploration surface (decoupled from tiers) */}
@@ -306,14 +302,13 @@ const styles = StyleSheet.create({
   domainLegendRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
   domainLegendLabel: { fontFamily: F.ub700, fontSize: 11, color: C.ink, letterSpacing: 0.4 },
   domainLegendBand: { fontFamily: F.mono, fontSize: 10, color: C.grey, letterSpacing: 0.8 },
+  openMap: { fontFamily: F.mono, fontSize: 10, color: C.ink, letterSpacing: 1 },
   courtCard: { backgroundColor: C.white, borderWidth: BORDER, borderColor: C.ink, padding: 12, marginTop: 8 },
-  courtRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  courtRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
   bandLabel: { width: 78, fontFamily: F.mono, fontSize: 9, color: C.grey, letterSpacing: 1 },
-  courtCell: { flex: 1, marginHorizontal: 3, paddingVertical: 10, alignItems: "center", borderWidth: 1.5 },
-  cellCharted: { backgroundColor: C.limeTint, borderColor: C.ink },
-  cellUncharted: { backgroundColor: C.cream, borderColor: "rgba(0,0,0,0.18)" },
-  cellCol: { fontFamily: F.ub700, fontSize: 9, color: C.grey, letterSpacing: 0.6 },
-  cellMeta: { fontFamily: F.mono, fontSize: 8, color: C.grey, marginTop: 2, letterSpacing: 0.6 },
+  miniCell: { flex: 1, marginHorizontal: 3, paddingVertical: 12, alignItems: "center", borderWidth: 1.5, borderColor: C.ink },
+  miniCellEmpty: { borderColor: "rgba(0,0,0,0.18)", borderStyle: "dashed" },
+  miniCol: { fontFamily: F.ub700, fontSize: 9, color: C.ink, letterSpacing: 0.6 },
   courtFoot: { fontFamily: F.mono, fontSize: 9, color: C.grey, letterSpacing: 0.8, marginTop: 8 },
   libraryRow: { flexDirection: "row", alignItems: "center", marginHorizontal: 16, marginTop: 20, padding: 14, borderWidth: BORDER, borderColor: C.ink, backgroundColor: C.white },
   libraryTitle: { fontFamily: F.ub900, fontSize: 13, color: C.ink, letterSpacing: -0.2 },
